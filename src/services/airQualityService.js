@@ -1,6 +1,7 @@
 /**
  * AeroSense AI — Air Quality & Geocoding Service
  * Powered by Open-Meteo APIs (Free, high-resolution global air quality data)
+ * Includes in-memory session caching (5-minute TTL) for network efficiency
  */
 
 export const DEFAULT_CITY = {
@@ -50,13 +51,29 @@ export const WINTER_SMOG_SIMULATION = {
   simulationNote: 'Active high-inversion winter smog event with critical PM2.5 and PM10 accumulation.'
 };
 
+// ============================================================
+// In-Memory Session Caching (5-Minute TTL)
+// Avoids redundant Open-Meteo network roundtrips for repeated searches
+// ============================================================
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const geocodingCache = new Map();
+const airQualityCache = new Map();
+
 /**
- * Searches cities using Open-Meteo Geocoding API
+ * Searches cities using Open-Meteo Geocoding API with 5-minute memory caching
  * @param {string} query
  * @returns {Promise<Array>}
  */
 export async function searchCities(query) {
   if (!query || query.trim().length < 2) return [];
+
+  const normalizedKey = query.trim().toLowerCase();
+
+  // Check in-memory cache
+  const cached = geocodingCache.get(normalizedKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
 
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
     query.trim()
@@ -68,7 +85,7 @@ export async function searchCities(query) {
   }
 
   const data = await response.json();
-  return (data.results || []).map((loc) => ({
+  const results = (data.results || []).map((loc) => ({
     id: loc.id,
     name: loc.name,
     country: loc.country || '',
@@ -77,17 +94,36 @@ export async function searchCities(query) {
     longitude: loc.longitude,
     timezone: loc.timezone || 'auto'
   }));
+
+  // Store in cache
+  geocodingCache.set(normalizedKey, {
+    data: results,
+    timestamp: Date.now()
+  });
+
+  return results;
 }
 
 /**
- * Fetches Live Air Quality from Open-Meteo Air Quality API
+ * Fetches Live Air Quality from Open-Meteo Air Quality API with 5-minute memory caching
  * @param {number} latitude
  * @param {number} longitude
+ * @param {boolean} bypassCache - force fresh network fetch
  * @returns {Promise<Object>}
  */
-export async function fetchLiveAirQuality(latitude, longitude) {
+export async function fetchLiveAirQuality(latitude, longitude, bypassCache = false) {
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     throw new Error('Valid geographical coordinates (latitude and longitude) are required.');
+  }
+
+  const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+
+  // Check in-memory cache unless bypass requested (e.g. manual refresh)
+  if (!bypassCache) {
+    const cached = airQualityCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
   }
 
   const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&hourly=us_aqi,pm2_5&forecast_days=1&timezone=auto`;
@@ -105,7 +141,7 @@ export async function fetchLiveAirQuality(latitude, longitude) {
     throw new Error('Incomplete data received from Open-Meteo Air Quality API.');
   }
 
-  return {
+  const result = {
     isSimulation: false,
     current: data.current,
     current_units: data.current_units || {
@@ -119,6 +155,22 @@ export async function fetchLiveAirQuality(latitude, longitude) {
     timezone: data.timezone || 'auto',
     timezone_abbreviation: data.timezone_abbreviation || ''
   };
+
+  // Cache fresh result
+  airQualityCache.set(cacheKey, {
+    data: result,
+    timestamp: Date.now()
+  });
+
+  return result;
+}
+
+/**
+ * Clears the in-memory telemetry and search caches
+ */
+export function clearAirQualityCache() {
+  geocodingCache.clear();
+  airQualityCache.clear();
 }
 
 /**

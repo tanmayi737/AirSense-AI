@@ -157,6 +157,36 @@ body {
   flex-wrap: wrap;
 }
 
+.btn-vision-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(20, 184, 166, 0.4);
+  background: rgba(13, 148, 136, 0.12);
+  color: #5EEAD4;
+}
+
+.btn-vision-toggle:hover {
+  background: rgba(13, 148, 136, 0.22);
+  border-color: rgba(20, 184, 166, 0.7);
+  color: #CCFBF1;
+}
+
+.btn-vision-toggle.active {
+  background: #0D9488;
+  border-color: #5EEAD4;
+  color: #042F2E;
+  box-shadow: 0 0 16px rgba(13, 148, 136, 0.6);
+  font-weight: 800;
+}
+
 .btn-sim-toggle {
   display: inline-flex;
   align-items: center;
@@ -1744,6 +1774,234 @@ body {
 
 .genai-tag {
   color: var(--color-teal-light);
+}
+
+/* ============================================================
+   ACCESSIBILITY & INCLUSIVE DESIGN
+   ============================================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Universal Visible Focus Indicator for Keyboard Navigation */
+:focus-visible {
+  outline: 3px solid #14B8A6 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.6) !important;
+}
+
+/* ============================================================
+   HIGH-CONTRAST / SENIOR VISION MODE
+   ============================================================ */
+.senior-vision-mode {
+  font-size: 105%;
+  --color-navy: #030712;
+  --color-navy-dark: #000000;
+  --color-navy-card: #080E24;
+  --color-muted: #E2E8F0;
+  --color-border: #475569;
+}
+
+.senior-vision-mode .bg-canvas {
+  background: #000000 !important;
+}
+
+.senior-vision-mode .hero-card,
+.senior-vision-mode .clean-window-card,
+.senior-vision-mode .assistant-section,
+.senior-vision-mode .matrix-controls-card,
+.senior-vision-mode .decision-card,
+.senior-vision-mode .indoor-checklist-card,
+.senior-vision-mode .sustainable-swaps-card,
+.senior-vision-mode .pollutant-card {
+  border: 2px solid rgba(255, 255, 255, 0.45) !important;
+  background: #060B1E !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+}
+
+.senior-vision-mode .hero-city-title,
+.senior-vision-mode .clean-window-title,
+.senior-vision-mode .assistant-title,
+.senior-vision-mode .section-main-title {
+  color: #FFFFFF !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.senior-vision-mode .aqi-number,
+.senior-vision-mode .pollutant-val,
+.senior-vision-mode .us-aqi-val,
+.senior-vision-mode .offset-metric-val {
+  color: #FFFFFF !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.senior-vision-mode .aqi-health-desc,
+.senior-vision-mode .clean-window-sub,
+.senior-vision-mode .assistant-sub,
+.senior-vision-mode .section-main-sub,
+.senior-vision-mode .decision-action-text,
+.senior-vision-mode .decision-why-box,
+.senior-vision-mode .check-text p,
+.senior-vision-mode .advice-block-text {
+  color: #F8FAFC !important;
+  font-size: 0.92rem !important;
+  line-height: 1.5 !important;
+}
+
+.senior-vision-mode .severity-badge,
+.senior-vision-mode .decision-status-badge,
+.senior-vision-mode .verdict-banner {
+  border-width: 2px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em !important;
+}
+
+.senior-vision-mode .profile-pill,
+.senior-vision-mode .activity-tab-btn,
+.senior-vision-mode .dist-btn,
+.senior-vision-mode .mode-btn,
+.senior-vision-mode .scenario-chip-btn {
+  border: 2px solid rgba(255, 255, 255, 0.35) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+.senior-vision-mode .profile-pill.selected,
+.senior-vision-mode .activity-tab-btn.active,
+.senior-vision-mode .dist-btn.active,
+.senior-vision-mode .mode-btn.active {
+  border-color: #14B8A6 !important;
+  background: #0D9488 !important;
+  color: #022C22 !important;
+}
+
+.senior-vision-mode .checklist-item {
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.senior-vision-mode .checklist-item.checked {
+  border-color: #14B8A6 !important;
+  background: rgba(13, 148, 136, 0.25) !important;
+}
+
+/* ============================================================
+   MOBILE 360PX VIEWPORT & ULTRA-CLEAN RESPONSIVENESS
+   ============================================================ */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .city-search-container {
+    max-width: 100%;
+  }
+
+  .header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .btn-sim-toggle,
+  .btn-vision-toggle {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.7rem;
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .btn-refresh {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .hero-card,
+  .clean-window-card,
+  .assistant-section,
+  .matrix-controls-card,
+  .decision-card,
+  .indoor-checklist-card,
+  .sustainable-swaps-card {
+    padding: 1rem 0.85rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+  }
+
+  .aqi-main-box {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .aqi-gauge-circle {
+    width: 88px;
+    height: 88px;
+  }
+
+  .aqi-number {
+    font-size: 2rem;
+  }
+
+  .aqi-details-box {
+    align-items: center;
+  }
+
+  .pollutants-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .pollutant-card {
+    padding: 0.65rem;
+  }
+
+  .pollutant-val {
+    font-size: 1.15rem;
+  }
+
+  .clean-window-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clean-window-stats-badge {
+    text-align: left;
+    width: 100%;
+  }
+
+  .stats-badge-window {
+    justify-content: flex-start;
+  }
+
+  .input-group {
+    flex-direction: column;
+  }
+
+  .btn-assistant-send {
+    padding: 0.65rem 1rem;
+    justify-content: center;
+  }
+
+  .offset-metrics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Footer */
