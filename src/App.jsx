@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header';
 import SimulationBanner from './components/SimulationBanner';
 import ErrorBanner from './components/ErrorBanner';
 import LiveTelemetryHero from './components/LiveTelemetryHero';
+import CleanWindowCard from './components/CleanWindowCard';
+import HouseholdMatrix from './components/HouseholdMatrix';
 import {
   DEFAULT_CITY,
   WINTER_SMOG_SIMULATION,
   fetchLiveAirQuality
 } from './services/airQualityService';
+import {
+  calculateCpcbAqi,
+  findBestOutdoorWindow
+} from './utils/decisionEngine';
 
 export default function App() {
   const [currentCity, setCurrentCity] = useState(DEFAULT_CITY);
@@ -68,6 +74,18 @@ export default function App() {
     loadAirQuality(currentCity);
   };
 
+  // Calculate Indian CPCB AQI data
+  const cpcbData = useMemo(() => {
+    if (!telemetry || !telemetry.current) return null;
+    return calculateCpcbAqi(telemetry.current.pm2_5, telemetry.current.pm10);
+  }, [telemetry]);
+
+  // Calculate 24-hour best outdoor window
+  const cleanWindowData = useMemo(() => {
+    if (!telemetry) return null;
+    return findBestOutdoorWindow(telemetry.hourly, telemetry.current?.pm2_5);
+  }, [telemetry]);
+
   return (
     <div className="bg-canvas">
       {/* Active Winter Smog Simulation Notification Banner */}
@@ -89,13 +107,35 @@ export default function App() {
           {/* Live Error Banner if API Call Fails */}
           {error && <ErrorBanner message={error} onRetry={() => loadAirQuality(currentCity)} />}
 
-          {/* Primary Telemetry Dashboard */}
+          {/* Primary Telemetry Dashboard: Indian CPCB + US AQI Dual Readout */}
           <LiveTelemetryHero
             telemetry={telemetry}
             currentCity={currentCity}
             isLoading={isLoading}
             isSimulation={isSimulation}
           />
+
+          {/* Clean 2-Hour Window Finder & 24h Hourly Forecast Trend */}
+          {telemetry && (
+            <CleanWindowCard
+              cleanWindowData={cleanWindowData}
+              currentPm25={telemetry.current?.pm2_5}
+            />
+          )}
+
+          {/* Household Decision Matrix + Indoor Air Care Checklist + Sustainable Swaps */}
+          {telemetry && (
+            <HouseholdMatrix
+              aqiData={{
+                cpcbAqi: cpcbData?.cpcbAqi ?? 100,
+                usAqi: telemetry.current?.us_aqi ?? 100,
+                pm2_5: telemetry.current?.pm2_5 ?? 35,
+                pm10: telemetry.current?.pm10 ?? 45,
+                dominantPollutant: cpcbData?.dominantPollutant ?? 'PM2.5'
+              }}
+              cleanWindow={cleanWindowData}
+            />
+          )}
         </div>
       </main>
 
@@ -106,7 +146,7 @@ export default function App() {
             <strong>AeroSense AI</strong> — Urban Air Quality Decision Assistant • Built for Hack2Skill Virtual Prompt Wars (Challenge 6)
           </p>
           <p style={{ marginTop: '0.25rem', opacity: 0.75 }}>
-            Real-time Telemetry: <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo High-Resolution Air Quality API</a> • Evaluator Simulation Ready
+            Formulations: Central Pollution Control Board (CPCB India) & WHO Global Guidelines • Real-time Telemetry: <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
           </p>
         </div>
       </footer>

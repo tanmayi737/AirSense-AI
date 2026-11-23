@@ -7,9 +7,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertOctagon,
-  Info
+  Info,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { getAqiSeverity, formatObservationTime } from '../services/airQualityService';
+import { calculateCpcbAqi } from '../utils/decisionEngine';
 
 export default function LiveTelemetryHero({
   telemetry,
@@ -21,7 +24,7 @@ export default function LiveTelemetryHero({
     return (
       <section className="hero-card">
         <div className="skeleton" style={{ height: '32px', width: '240px', marginBottom: '1rem' }} />
-        <div className="skeleton" style={{ height: '120px', width: '100%', marginBottom: '1rem' }} />
+        <div className="skeleton" style={{ height: '140px', width: '100%', marginBottom: '1rem' }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem' }}>
           <div className="skeleton" style={{ height: '80px' }} />
           <div className="skeleton" style={{ height: '80px' }} />
@@ -36,12 +39,15 @@ export default function LiveTelemetryHero({
     return null;
   }
 
-  const { current, current_units, hourly } = telemetry;
-  const aqiValue = Math.round(current.us_aqi ?? 0);
-  const severity = getAqiSeverity(aqiValue);
+  const { current, current_units } = telemetry;
+  const usAqiValue = Math.round(current.us_aqi ?? 0);
+  const usSeverity = getAqiSeverity(usAqiValue);
+
+  // Indian CPCB AQI Calculation
+  const cpcbResult = calculateCpcbAqi(current.pm2_5, current.pm10);
   const observationTime = formatObservationTime(current.time);
 
-  // Pollutant helper to evaluate status vs safe guideline
+  // Pollutant evaluation status
   const getPollutantStatus = (val, thresholds) => {
     if (val <= thresholds.good) return { label: 'Normal', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' };
     if (val <= thresholds.moderate) return { label: 'Elevated', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' };
@@ -56,15 +62,16 @@ export default function LiveTelemetryHero({
   const getSeverityIcon = (level) => {
     switch (level) {
       case 'Good':
-        return <ShieldCheck size={16} />;
+      case 'Satisfactory':
+        return <ShieldCheck size={15} />;
       case 'Moderate':
-        return <Info size={16} />;
+        return <Info size={15} />;
       case 'Poor':
       case 'Very Poor':
-        return <AlertTriangle size={16} />;
+        return <AlertTriangle size={15} />;
       case 'Severe':
       default:
-        return <AlertOctagon size={16} />;
+        return <AlertOctagon size={15} />;
     }
   };
 
@@ -72,28 +79,28 @@ export default function LiveTelemetryHero({
     <section
       className="hero-card"
       style={{
-        '--hero-accent': severity.color,
-        '--sev-color': severity.color,
-        '--sev-bg': severity.bgColor,
-        '--sev-glow': severity.borderColor
+        '--hero-accent': cpcbResult.color,
+        '--sev-color': cpcbResult.color,
+        '--sev-bg': `${cpcbResult.color}1F`,
+        '--sev-glow': cpcbResult.color
       }}
     >
       {/* Top Location & Timestamp Bar */}
       <div className="hero-meta-bar">
         <div>
           <h2 className="hero-city-title">
-            <MapPin size={22} style={{ color: severity.color }} />
+            <MapPin size={22} style={{ color: cpcbResult.color }} />
             <span>{isSimulation ? 'Hyderabad (Simulation Target)' : currentCity.name}</span>
           </h2>
           <div className="hero-city-sub">
             <span>{[currentCity.admin1, currentCity.country].filter(Boolean).join(', ')}</span>
             {isSimulation ? (
               <span style={{ color: '#F87171', fontWeight: 700, marginLeft: '0.4rem' }}>
-                • Synthetic Smog Chamber
+                • Synthetic Smog Chamber Active
               </span>
             ) : (
               <span style={{ color: 'var(--color-teal-light)', fontWeight: 600, marginLeft: '0.4rem' }}>
-                • Live Open-Meteo Sensor Feed
+                • Live Open-Meteo Sensor Telemetry
               </span>
             )}
           </div>
@@ -105,65 +112,122 @@ export default function LiveTelemetryHero({
         </div>
       </div>
 
-      {/* Main AQI & Health Telemetry Grid */}
+      {/* Primary Telemetry Grid: Side-by-Side Dual AQI Indices + Health Advisory */}
       <div className="telemetry-primary-grid">
-        {/* Large AQI Gauge & Severity Category */}
-        <div className="aqi-main-box">
-          <div className="aqi-gauge-circle" aria-label={`Current US AQI is ${aqiValue}`}>
-            <span className="aqi-number">{aqiValue}</span>
-            <span className="aqi-label">US AQI</span>
+        {/* Dual AQI Display Box: Indian CPCB AQI + US AQI */}
+        <div className="dual-aqi-wrapper">
+          {/* Primary: Indian CPCB AQI */}
+          <div className="aqi-card-primary cpcb-card">
+            <div className="aqi-card-top-label">
+              <span className="aqi-system-title">Indian CPCB AQI</span>
+              <span className="dominant-pollutant-pill" title="Dominant criteria pollutant driving the CPCB AQI">
+                <Layers size={11} style={{ marginRight: '3px', verticalAlign: '-1px' }} />
+                Dominant: {cpcbResult.dominantPollutant}
+              </span>
+            </div>
+
+            <div className="aqi-card-body">
+              <div
+                className="aqi-gauge-circle main-gauge"
+                style={{
+                  borderColor: cpcbResult.color,
+                  boxShadow: `0 0 20px ${cpcbResult.color}40`,
+                  background: `${cpcbResult.color}15`
+                }}
+              >
+                <span className="aqi-number">{cpcbResult.cpcbAqi}</span>
+                <span className="aqi-label">CPCB AQI</span>
+              </div>
+
+              <div className="aqi-details-box">
+                <div
+                  className="severity-badge"
+                  style={{
+                    backgroundColor: `${cpcbResult.color}20`,
+                    borderColor: `${cpcbResult.color}60`,
+                    color: cpcbResult.color
+                  }}
+                >
+                  {getSeverityIcon(cpcbResult.category)}
+                  <span>{cpcbResult.category}</span>
+                </div>
+                <p className="aqi-health-desc">{cpcbResult.healthSummary}</p>
+                <div className="subindices-readout">
+                  <span>Sub-Index PM2.5: <strong>{cpcbResult.pm25SubIndex}</strong></span>
+                  <span> • </span>
+                  <span>PM10: <strong>{cpcbResult.pm10SubIndex}</strong></span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="aqi-details-box">
-            <div className={`severity-badge ${severity.badgeClass}`}>
-              {getSeverityIcon(severity.level)}
-              <span>{severity.level}</span>
+          {/* Secondary: US AQI */}
+          <div className="aqi-card-secondary us-card">
+            <div className="aqi-card-top-label">
+              <span className="aqi-system-title">US EPA AQI</span>
+              <span className="secondary-scale-tag">Global Benchmark</span>
             </div>
-            <p className="aqi-health-desc">{severity.description}</p>
-            <div className="aqi-action-advice">
-              <Activity size={13} />
-              <span>{severity.healthAction}</span>
+
+            <div className="us-aqi-mini-row">
+              <div
+                className="us-aqi-pill-box"
+                style={{
+                  borderColor: usSeverity.color,
+                  backgroundColor: usSeverity.bgColor,
+                  color: usSeverity.color
+                }}
+              >
+                <span className="us-aqi-val">{usAqiValue}</span>
+                <span className="us-aqi-lbl">US AQI</span>
+              </div>
+
+              <div className="us-aqi-meta">
+                <span className="us-cat-badge" style={{ color: usSeverity.color }}>
+                  {usSeverity.level}
+                </span>
+                <span className="us-cat-sub">{usSeverity.description}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Actionable Health Guidance Box */}
+        {/* Quick Health & Activity Advisory Card */}
         <div className="hero-health-box">
           <div className="health-box-title">
-            <Activity size={14} style={{ color: severity.color }} />
+            <Activity size={14} style={{ color: cpcbResult.color }} />
             <span>Health & Activity Advisory</span>
           </div>
           <ul className="health-guidance-list">
             <li className="health-guidance-item">
-              <span className="guidance-dot" />
+              <span className="guidance-dot" style={{ background: cpcbResult.color }} />
               <span>
-                <strong>Outdoor Sports / Jogging: </strong>
-                {aqiValue > 150
-                  ? 'Avoid completely. Switch to indoor aerobic exercises with filtered air.'
-                  : aqiValue > 100
-                  ? 'Limit strenuous outdoor workouts; sensitive groups should stay indoors.'
-                  : 'Favorable conditions for running, cycling, and park walks.'}
+                <strong>Outdoor Sports / Exercise: </strong>
+                {cpcbResult.cpcbAqi > 200
+                  ? 'Avoid completely. Microvascular irritation occurs under heavy lung ventilation.'
+                  : cpcbResult.cpcbAqi > 100
+                  ? 'Limit intense outdoor training; shift high-cardio sessions indoors.'
+                  : 'Favorable conditions for outdoor running, cycling, and park walks.'}
               </span>
             </li>
             <li className="health-guidance-item">
-              <span className="guidance-dot" />
+              <span className="guidance-dot" style={{ background: cpcbResult.color }} />
               <span>
-                <strong>Home Ventilation: </strong>
-                {aqiValue > 150
-                  ? 'Keep windows tightly sealed. Run HEPA air purifiers on continuous mode.'
-                  : aqiValue > 100
-                  ? 'Close windows during rush hours (8-11 AM & 6-9 PM).'
-                  : 'Open windows for fresh air circulation during midday.'}
+                <strong>Home Air Sealing: </strong>
+                {cpcbResult.cpcbAqi > 200
+                  ? 'Keep windows tightly sealed against infiltration. Run HEPA air purification.'
+                  : cpcbResult.cpcbAqi > 100
+                  ? 'Keep closed during rush hours (8-11 AM & 6-9 PM) when thermal inversion peaks.'
+                  : 'Open windows for fresh cross-ventilation during afternoon hours.'}
               </span>
             </li>
             <li className="health-guidance-item">
-              <span className="guidance-dot" />
+              <span className="guidance-dot" style={{ background: cpcbResult.color }} />
               <span>
                 <strong>Respiratory Protection: </strong>
-                {aqiValue > 200
+                {cpcbResult.cpcbAqi > 200
                   ? 'Mandatory fit-tested N95 / N99 mask for essential outdoor transit.'
-                  : aqiValue > 100
-                  ? 'Recommended for children, elderly, and asthmatic individuals.'
+                  : cpcbResult.cpcbAqi > 100
+                  ? 'Recommended for children, elderly, and those with asthmatic history.'
                   : 'No mask required for general healthy population.'}
               </span>
             </li>
@@ -172,20 +236,22 @@ export default function LiveTelemetryHero({
       </div>
 
       {/* 4-Pollutant Breakdown Cards */}
-      <div>
+      <div style={{ marginTop: '0.5rem' }}>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '0.65rem'
+            marginBottom: '0.65rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
           }}
         >
           <span style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-muted)', letterSpacing: '0.05em' }}>
-            Criteria Air Pollutant Telemetry
+            Criteria Pollutant Telemetry
           </span>
           <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
-            WHO Global Air Quality Guidelines
+            WHO Global Air Quality Standards (24h Mean)
           </span>
         </div>
 
