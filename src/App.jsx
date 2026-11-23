@@ -4,6 +4,7 @@ import SimulationBanner from './components/SimulationBanner';
 import ErrorBanner from './components/ErrorBanner';
 import LiveTelemetryHero from './components/LiveTelemetryHero';
 import CleanWindowCard from './components/CleanWindowCard';
+import AeroAssistantChat from './components/AeroAssistantChat';
 import HouseholdMatrix from './components/HouseholdMatrix';
 import {
   DEFAULT_CITY,
@@ -123,6 +124,17 @@ export default function App() {
             />
           )}
 
+          {/* Context-Aware AI Chat Assistant (Gemini 2.5 Flash Proxy) */}
+          {telemetry && (
+            <AeroAssistantChat
+              currentCity={currentCity}
+              telemetry={telemetry}
+              cpcbData={cpcbData}
+              cleanWindow={cleanWindowData}
+              isSimulation={isSimulation}
+            />
+          )}
+
           {/* Household Decision Matrix + Indoor Air Care Checklist + Sustainable Swaps */}
           {telemetry && (
             <HouseholdMatrix
@@ -146,7 +158,7 @@ export default function App() {
             <strong>AeroSense AI</strong> — Urban Air Quality Decision Assistant • Built for Hack2Skill Virtual Prompt Wars (Challenge 6)
           </p>
           <p style={{ marginTop: '0.25rem', opacity: 0.75 }}>
-            Formulations: Central Pollution Control Board (CPCB India) & WHO Global Guidelines • Real-time Telemetry: <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+            AI Engine: Google Gemini 2.5 Flash • CPCB India Formulations & WHO Guidelines • Real-time Telemetry: <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
           </p>
         </div>
       </footer>
