@@ -387,3 +387,59 @@ export function calculateSustainableOffset(commuteDistanceKm = 15, mode = 'metro
     fuelCostSavedInr: Math.round(km * 7.5) // Approximate INR savings vs solo petrol car
   };
 }
+
+/**
+ * Calculates percentage of WHO safe daily PM2.5 budget consumed by a specific activity
+ * @param {number} pm25 - Active PM2.5 in µg/m³
+ * @param {string} activity - Planned activity name
+ * @returns {Object} { percent, activityDose, safeDailyBudget, status, color, descriptor }
+ */
+export function calculateExposureBudget(pm25 = 35, activity = 'Exercise') {
+  const conc = Math.max(5, Number(pm25) || 35);
+
+  let durationHours = 1.0;
+  let ventilationRate = 1.0;
+
+  const actLower = (activity || '').toLowerCase();
+  if (actLower.includes('exercise') || actLower.includes('jog') || actLower.includes('run')) {
+    durationHours = 0.75;
+    ventilationRate = 2.2;
+  } else if (actLower.includes('school')) {
+    durationHours = 0.5;
+    ventilationRate = 1.2;
+  } else if (actLower.includes('commute')) {
+    durationHours = 1.0;
+    ventilationRate = 1.0;
+  } else {
+    durationHours = 2.0;
+    ventilationRate = 0.6;
+  }
+
+  // WHO safe daily exposure baseline: 15 µg/m³ * 12 m³ air = 180 µg
+  const safeDailyBudget = 180;
+  const activityDose = Math.round(conc * durationHours * ventilationRate);
+  const percent = Math.min(250, Math.round((activityDose / safeDailyBudget) * 100));
+
+  let status = 'SAFE';
+  let color = '#2D5A27'; // Botanical Moss
+  let descriptor = 'Within safe daily threshold';
+
+  if (percent > 100) {
+    status = 'EXCEEDED';
+    color = '#C84B31'; // Fired Terracotta Clay
+    descriptor = 'Exceeds recommended safe daily inhalation allowance';
+  } else if (percent > 50) {
+    status = 'ELEVATED';
+    color = '#D97706'; // Warm Ochre
+    descriptor = 'Consumes majority of daily allowance';
+  }
+
+  return {
+    percent,
+    activityDose,
+    safeDailyBudget,
+    status,
+    color,
+    descriptor
+  };
+}

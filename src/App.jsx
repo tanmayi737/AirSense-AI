@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header';
-import SimulationBanner from './components/SimulationBanner';
-import ErrorBanner from './components/ErrorBanner';
-import LiveTelemetryHero from './components/LiveTelemetryHero';
-import CleanWindowCard from './components/CleanWindowCard';
-import AeroAssistantChat from './components/AeroAssistantChat';
-import HouseholdMatrix from './components/HouseholdMatrix';
+import PulseView from './components/PulseView';
+import HouseholdView from './components/HouseholdView';
+import SanctuaryView from './components/SanctuaryView';
+import AdvisorView from './components/AdvisorView';
 import {
   DEFAULT_CITY,
   WINTER_SMOG_SIMULATION,
@@ -23,6 +21,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isSimulation, setIsSimulation] = useState(false);
   const [isSeniorVision, setIsSeniorVision] = useState(false);
+  const [activeTab, setActiveTab] = useState('pulse');
   const [announcement, setAnnouncement] = useState('');
 
   // Helper for screen reader announcements
@@ -32,7 +31,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Load live air quality data
+  // Load air quality data
   const loadAirQuality = useCallback(
     async (city, bypassCache = false) => {
       setIsLoading(true);
@@ -61,7 +60,7 @@ export default function App() {
   // Handle City Selection
   const handleSelectCity = (city) => {
     setCurrentCity(city);
-    setIsSimulation(false); // Reset simulation mode on new city search
+    setIsSimulation(false);
     loadAirQuality(city);
   };
 
@@ -71,7 +70,7 @@ export default function App() {
       setIsSimulation(true);
       setError(null);
       setTelemetry(WINTER_SMOG_SIMULATION);
-      announce('Winter Smog Simulation Mode is now active. Simulating severe winter smog at AQI 360.');
+      announce('Winter Smog Simulation Mode active (AQI 360).');
     } else {
       setIsSimulation(false);
       loadAirQuality(currentCity);
@@ -79,25 +78,18 @@ export default function App() {
     }
   };
 
-  // Exit Simulation
-  const handleExitSimulation = () => {
-    setIsSimulation(false);
-    loadAirQuality(currentCity);
-    announce('Exited simulation mode. Returned to live Open-Meteo telemetry.');
-  };
-
-  // Manual Refresh (bypasses in-memory cache)
+  // Manual Refresh
   const handleRefresh = () => {
     if (isSimulation) return;
     loadAirQuality(currentCity, true);
     announce(`Refreshing live telemetry for ${currentCity.name}.`);
   };
 
-  // Toggle High-Contrast / Senior Vision Mode
+  // Toggle High Contrast / Senior Vision Mode
   const handleToggleSeniorVision = () => {
     setIsSeniorVision((prev) => {
       const next = !prev;
-      announce(next ? 'Senior Vision and High Contrast mode enabled.' : 'Senior Vision mode disabled.');
+      announce(next ? 'High Contrast mode enabled.' : 'High Contrast mode disabled.');
       return next;
     });
   };
@@ -115,16 +107,13 @@ export default function App() {
   }, [telemetry]);
 
   return (
-    <div className={`bg-canvas ${isSeniorVision ? 'senior-vision-mode' : ''}`}>
-      {/* Screen Reader Live Announcement Region */}
+    <div className={`app-viewport-root ${isSeniorVision ? 'senior-vision-mode' : ''}`}>
+      {/* Screen Reader Live Announcements */}
       <div className="sr-only" aria-live="polite" role="status">
         {announcement}
       </div>
 
-      {/* Active Winter Smog Simulation Notification Banner */}
-      {isSimulation && <SimulationBanner onExitSimulation={handleExitSimulation} />}
-
-      {/* App Header with Brand, City Search, Senior Vision Toggle, Simulation Toggle & Refresh */}
+      {/* Sticky 64px Command Navbar */}
       <Header
         currentCity={currentCity}
         onSelectCity={handleSelectCity}
@@ -134,68 +123,75 @@ export default function App() {
         isLoading={isLoading}
         isSeniorVision={isSeniorVision}
         onToggleSeniorVision={handleToggleSeniorVision}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
       />
 
-      {/* Main Body */}
-      <main className="main-content" id="main-content">
-        <div className="container">
-          {/* Live Error Banner if API Call Fails */}
-          {error && <ErrorBanner message={error} onRetry={() => loadAirQuality(currentCity, true)} />}
-
-          {/* Primary Telemetry Dashboard: Indian CPCB + US AQI Dual Readout */}
-          <LiveTelemetryHero
-            telemetry={telemetry}
-            currentCity={currentCity}
-            isLoading={isLoading}
-            isSimulation={isSimulation}
-          />
-
-          {/* Clean 2-Hour Window Finder & 24h Hourly Forecast Trend */}
-          {telemetry && (
-            <CleanWindowCard
-              cleanWindowData={cleanWindowData}
-              currentPm25={telemetry.current?.pm2_5}
-            />
-          )}
-
-          {/* Context-Aware AI Chat Assistant (Gemini 2.5 Flash Proxy) */}
-          {telemetry && (
-            <AeroAssistantChat
-              currentCity={currentCity}
-              telemetry={telemetry}
-              cpcbData={cpcbData}
-              cleanWindow={cleanWindowData}
-              isSimulation={isSimulation}
-            />
-          )}
-
-          {/* Household Decision Matrix + Indoor Air Care Checklist + Sustainable Swaps */}
-          {telemetry && (
-            <HouseholdMatrix
-              aqiData={{
-                cpcbAqi: cpcbData?.cpcbAqi ?? 100,
-                usAqi: telemetry.current?.us_aqi ?? 100,
-                pm2_5: telemetry.current?.pm2_5 ?? 35,
-                pm10: telemetry.current?.pm10 ?? 45,
-                dominantPollutant: cpcbData?.dominantPollutant ?? 'PM2.5'
+      {/* Single-Viewport Main Stage */}
+      <main className="app-single-viewport-body" id="main-content" role="main">
+        {error ? (
+          <div className="tactile-card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--color-terracotta)' }}>
+            <h3 style={{ color: 'var(--color-terracotta)', marginBottom: '0.5rem' }}>Telemetry Feed Disconnected</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{error}</p>
+            <button
+              onClick={() => loadAirQuality(currentCity, true)}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'var(--color-moss)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '9999px',
+                cursor: 'pointer',
+                fontWeight: 700
               }}
-              cleanWindow={cleanWindowData}
-            />
-          )}
-        </div>
-      </main>
+            >
+              Retry Live Telemetry
+            </button>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'pulse' && (
+              <PulseView
+                telemetry={telemetry}
+                currentCity={currentCity}
+                cpcbData={cpcbData}
+                cleanWindow={cleanWindowData}
+                isSimulation={isSimulation}
+              />
+            )}
 
-      {/* Footer */}
-      <footer className="app-footer" role="contentinfo">
-        <div className="container">
-          <p>
-            <strong>AeroSense AI</strong> — Urban Air Quality Decision Assistant • Built for Hack2Skill Virtual Prompt Wars (Challenge 6)
-          </p>
-          <p style={{ marginTop: '0.25rem', opacity: 0.75 }}>
-            Formulations: Central Pollution Control Board (CPCB India) & WHO Guidelines • Real-time Telemetry: <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a> • Accessible & Senior Vision Ready
-          </p>
-        </div>
-      </footer>
+            {activeTab === 'household' && (
+              <HouseholdView
+                aqiData={{
+                  cpcbAqi: cpcbData?.cpcbAqi ?? 100,
+                  usAqi: telemetry?.current?.us_aqi ?? 100,
+                  pm2_5: telemetry?.current?.pm2_5 ?? 35,
+                  pm10: telemetry?.current?.pm10 ?? 45,
+                  dominantPollutant: cpcbData?.dominantPollutant ?? 'PM2.5'
+                }}
+                cleanWindow={cleanWindowData}
+              />
+            )}
+
+            {activeTab === 'sanctuary' && (
+              <SanctuaryView
+                aqiData={cpcbData}
+                cleanWindow={cleanWindowData}
+              />
+            )}
+
+            {activeTab === 'advisor' && (
+              <AdvisorView
+                currentCity={currentCity}
+                telemetry={telemetry}
+                cpcbData={cpcbData}
+                cleanWindow={cleanWindowData}
+                isSimulation={isSimulation}
+              />
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

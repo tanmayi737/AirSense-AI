@@ -3,7 +3,8 @@ import {
   calculateCpcbAqi,
   findBestOutdoorWindow,
   generateHouseholdDecisions,
-  calculateSustainableOffset
+  calculateSustainableOffset,
+  calculateExposureBudget
 } from './decisionEngine.js';
 
 describe('Indian CPCB AQI Engine (Sub-indices & Breakpoints)', () => {
@@ -182,5 +183,19 @@ describe('Quantified Sustainable Offset Calculator', () => {
     expect(Number(offset.savedCo2Kg)).toBeGreaterThan(1.0);
     expect(Number(offset.savedPm25Grams)).toBeGreaterThan(0.5);
     expect(offset.fuelCostSavedInr).toBeGreaterThan(50);
+  });
+});
+
+describe('Daily PM2.5 Exposure Budget Calculator', () => {
+  it('computes safe budget consumption under clean air', () => {
+    const budget = calculateExposureBudget(15, 'Exercise');
+    expect(budget.status).toBe('SAFE');
+    expect(budget.percent).toBeLessThanOrEqual(50);
+  });
+
+  it('detects budget overflow under winter smog conditions', () => {
+    const budget = calculateExposureBudget(210, 'Exercise');
+    expect(budget.status).toBe('EXCEEDED');
+    expect(budget.percent).toBeGreaterThan(100);
   });
 });
