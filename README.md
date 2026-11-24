@@ -1,13 +1,13 @@
-# AeroSense AI — Urban Air Quality Decision Assistant
+# AirSense-AI — Urban Air Quality Decision Assistant
 
-[![Vitest](https://img.shields.io/badge/tests-14%20passed-2D5A27?style=flat-square&logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-25%20passed-2D5A27?style=flat-square&logo=vitest)](https://vitest.dev/)
 [![React](https://img.shields.io/badge/React-18.3-18181B?style=flat-square&logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 [![Gemini](https://img.shields.io/badge/Google%20GenAI-Gemini%202.5%20Flash-4285F4?style=flat-square&logo=google)](https://aistudio.google.com/)
 [![License](https://img.shields.io/badge/license-MIT-57534E?style=flat-square)](LICENSE)
 
 > Built for **Hack2Skill Virtual Prompt Wars — Challenge 6: Urban Air Quality Assistant**.  
-> **Live Deployment:** [https://aerosense-ai.vercel.app](https://aerosense-ai.vercel.app) *(Deploy URL Placeholder)*
+> **Live Deployment:** [Deployment Link Coming Soon]
 
 ---
 
@@ -29,14 +29,14 @@ Millions of urban residents in Indian cities (Hyderabad, Delhi, Mumbai, Bengalur
 ## 👥 Target Users
 - **Parents of School Children:** Deciding whether open-air morning school runs and playground drills are safe or require sealed bus transport and N95 masks.
 - **Seniors & Asthmatic Individuals:** Requiring strict indoor containment guidance and scheduled balcony walks aligned with diurnal dispersion.
-- **Urban Runners & Athletes:** Managing aerobic minute-ventilation loads to prevent microvascular inflammation.
+- **Urban Runners & Athletes:** Managing workout duration and intensity to protect lungs and avoid throat irritation during outdoor cardio.
 - **Daily Commuters:** Identifying arterial corridor risks and tracking quantified carbon/particulate reductions by opting for Metro rail or carpooling.
 
 ---
 
 ## 🎨 Bespoke UI/UX Design Philosophy
 
-AeroSense AI eschews generic dark dashboards and cluttered multi-column KPI grids in favor of a **tactile consumer hardware companion** inspired by **Dieter Rams / Braun functionalist precision instruments**:
+AirSense-AI eschews generic dark dashboards and cluttered multi-column KPI grids in favor of a **tactile consumer hardware companion** inspired by **Dieter Rams / Braun functionalist precision instruments**:
 
 - **"Cloud Dancer & Fired Clay" Palette:**
   - **Page Canvas:** `#F0EEE9` (Cloud Dancer warm off-white)
@@ -56,7 +56,7 @@ AeroSense AI eschews generic dark dashboards and cluttered multi-column KPI grid
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│ [● AeroSense AI] [Search: Hyderabad ▾]  [ Pulse | Household | Sanctuary | Advisor ]  [Smog: 360] [Contrast] [↻] │
+│ [● AirSense AI] [Search: Hyderabad ▾]  [ Pulse | Household | Sanctuary | Advisor ]  [Smog: 360] [Contrast] [↻] │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -64,17 +64,22 @@ AeroSense AI eschews generic dark dashboards and cluttered multi-column KPI grid
 - **Atmospheric Sky-Wash Concentric Dial (Left 60%):**
   - Displays **Indian CPCB AQI** and **US EPA AQI** side-by-side using `tabular-nums`.
   - Ambient radial sky-wash shifts naturally from soft botanical sage mist (clean) to warm parchment (moderate) to dusty terracotta clay (severe smog).
-  - Identifies the dominant criteria pollutant (`PM2.5` or `PM10`) and presents 4 hardware criteria pollutant readings (`PM2.5`, `PM10`, `NO₂`, `O₃`) with WHO safe target baselines.
+  - Identifies the dominant criteria pollutant (`PM2.5` or `PM10`) and presents 4 hardware criteria pollutant readings (`PM2.5`, `PM10`, `NO₂`, `O₃`) with plain-English 1-line helper text and WHO safe target baselines.
   - **10-Second Family Briefing:** Immediate natural-language synthesis summarizing daily air quality for fast decision-making.
 - **24-Hour Clean-Window Scrubbable Ribbon (Right 40%):**
   - Interactive hourly PM2.5 waveform. Scrubbing or hovering over any hour updates a live micro-readout.
   - Highlights the cleanest 2-hour outdoor window in Botanical Moss with exposure reduction percentage vs. current air.
 
-### 2. `Household` View (Personas & Physiological Budget)
+### 2. `Household` View (Personas & Daily Safe Breathing Allowance)
 - **Active Household Personas:** Multi-select family toggles (`School Child` 🎒, `Elderly / Asthma` 🫁, `Outdoor Runner` 🏃, `Daily Commuter` 🚗) combined with a Planned Activity selector (`School Run`, `Exercise`, `Commute`, `Ventilation`).
-- **Daily PM2.5 Exposure Budget Arc:**
-  - Animated SVG semicircular gauge calculating what percentage of the WHO recommended daily safe PM2.5 inhalation allowance ($180\ \mu\text{g}$) this activity consumes based on exertion minute ventilation.
-- **Tailored Verdict Cards:** High-contrast `GO`, `MODIFY`, or `AVOID` directives with scientific rationale, safer window swaps, and indoor protection steps.
+- **Interactive Outdoor Duration Slider (15m to 120m):**
+  - Interactive slider dynamically recalculating the Daily Safe Breathing Allowance arc.
+  - Automatically flips card verdicts from `AVOID` to `MODIFY` when shortened duration reduces inhaled dust exposure below 80% of the safe daily allowance.
+- **Transport & Mask Selector:** 4-pill exposure multiplier selector (**Walking** 1.0×, **Open Auto / Bike** 1.35×, **Metro / AC Car** 0.45×, **N95 Masked** 0.25×) updates the Daily Safe Breathing Allowance gauge and verdict cards live.
+- **Daily Safe Breathing Allowance:**
+  - Animated SVG semicircular gauge calculating what percentage of the WHO recommended daily safe dust allowance ($180\ \mu\text{g}$) this trip consumes with an everyday summary: *"A 30-min outdoor trip right now uses X% of your safe daily dust allowance."*
+- **Tailored Decision Cards:** High-contrast `GO`, `MODIFY`, or `AVOID` directives featuring 1-line everyday helper text, dynamic city name, current hour, dominant pollutant (`PM2.5` vs `PM10`), and exact cleanest window hours.
+- **Cigarette Equivalent Indicator:** Compact pill below the AQI dial showing `(PM2.5 / 22).toFixed(1)` cigarettes/day equivalent against the WHO 24h particulate baseline — instantly relatable to non-technical family members.
 
 ### 3. `Sanctuary` View (Home Defense & Sustainability)
 - **Smart Window Ventilation Guide:** Diurnal breakdown of morning thermal inversion trapping (7–10 AM), solar convection flush windows, and evening traffic resuspension.
@@ -133,13 +138,16 @@ $$\text{Dominant Pollutant} = \begin{cases} \text{PM2.5} & \text{if } I_{\text{P
 
 ## 🧪 Automated Testing Suite (Vitest)
 
-AeroSense AI includes a comprehensive unit test suite in [`src/utils/decisionEngine.test.js`](file:///c:/Users/tsk_2/OneDrive/Desktop/VSCode/PromptWars6/AeroSense-AI/src/utils/decisionEngine.test.js) validating:
+AirSense-AI includes a comprehensive unit test suite in [`src/utils/decisionEngine.test.js`](file:///c:/Users/tsk_2/OneDrive/Desktop/VSCode/PromptWars6/AeroSense-AI/src/utils/decisionEngine.test.js) validating:
 1. Indian CPCB AQI sub-index calculations and category boundaries across PM2.5/PM10 concentrations corresponding to $\sim 30$, $80$, $130$, $220$, and $350\ \mu\text{g/m}^3$.
 2. Dominant pollutant detection (`PM2.5` vs `PM10`).
 3. 24h Clean-Window sliding 2-hour minimum search, average PM2.5 calculation, and exposure reduction percentages.
 4. Household decision generation verifying stricter `AVOID` verdicts for vulnerable profiles (*School Child*, *Elderly / Asthma*, *Outdoor Runner*) under severe smog compared to good air.
 5. Quantified sustainable mobility offset formulas.
-6. Daily PM2.5 exposure budget arc calculations under clean and smog conditions.
+6. Daily Safe Breathing Allowance calculations under clean and smog conditions.
+7. Dynamic city-specific and current-hour recommendations without clinical jargon.
+8. Transport & Mask exposure multipliers: **Walking** 1.0×, **Open Auto / Bike** 1.35×, **Metro / AC Car** 0.45×, **N95 Masked** 0.25×.
+9. Secondary gas spike awareness: `O3 > 100 µg/m³` and `NO2 > 25 µg/m³` alerts in the 10-Second Family Verdict.
 
 ```bash
 # Execute unit test suite
@@ -148,10 +156,10 @@ npm test
 
 **Results:**
 ```
-✓ src/utils/decisionEngine.test.js (14 tests)
+✓ src/utils/decisionEngine.test.js (25 tests)
 Test Files  1 passed (1)
-Tests       14 passed (14)
-Duration    ~700ms
+Tests       25 passed (25)
+Duration    ~800ms
 ```
 
 ---
@@ -164,8 +172,8 @@ Duration    ~700ms
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/tanmayi737/AeroSense-AI.git
-cd AeroSense-AI
+git clone https://github.com/tanmayi737/AirSense-AI.git
+cd AirSense-AI
 npm install
 ```
 
@@ -191,7 +199,7 @@ npm run build
 ---
 
 ## 📌 Assumptions & Disclaimers
-1. **Medical Advisory:** AeroSense AI provides preventive environmental health and exposure reduction guidance; it does not issue clinical diagnoses or drug prescriptions.
+1. **Medical Advisory:** AirSense AI provides preventive environmental health and exposure reduction guidance; it does not issue clinical diagnoses or drug prescriptions.
 2. **Atmospheric Data:** Ambient telemetry is sourced from Open-Meteo's hourly weather and Copernicus atmospheric models. Microclimates adjacent to construction sites or high-traffic intersections may experience localized spikes.
 3. **Simulation Mode:** The *"Simulate Smog (360)"* button injects a synthetic severe winter temperature inversion event ($360\ \text{AQI}, 210\ \mu\text{g/m}^3\ \text{PM2.5}$) designed specifically for evaluators to stress-test emergency advisories anytime.
 

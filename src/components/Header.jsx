@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wind, RefreshCw, Flame, Eye, Activity, Users, Home, Bot } from 'lucide-react';
 import CitySearch from './CitySearch';
+import { CITY_PRESETS } from '../services/airQualityService';
 
 export default function Header({
   currentCity,
@@ -24,16 +25,37 @@ export default function Header({
   return (
     <header className="app-command-navbar" role="banner">
       <div className="navbar-container">
-        {/* LEFT: Brand Mark + Compact Inline City Search */}
+        {/* LEFT: Brand Mark + Compact Inline City Search + 1-Click Preset Pills */}
         <div className="navbar-left-cluster">
-          <div className="brand-instrument-mark" aria-label="AeroSense AI Brand Mark">
+          <div className="brand-instrument-mark" aria-label="AirSense AI Brand Mark">
             <div className="brand-dot-beacon" />
-            <span className="brand-name-text">AeroSense</span>
+            <span className="brand-name-text">AirSense</span>
             <span className="brand-suffix-pill">AI</span>
           </div>
 
-          <div className="navbar-city-search-wrap">
-            <CitySearch onSelectCity={onSelectCity} currentCity={currentCity} />
+          <div className="navbar-city-search-cluster">
+            <div className="navbar-city-search-wrap">
+              <CitySearch onSelectCity={onSelectCity} currentCity={currentCity} />
+            </div>
+
+            {/* 1-Click City Preset Pills */}
+            <div className="navbar-city-presets" role="group" aria-label="Quick-switch city presets">
+              {CITY_PRESETS.map((preset) => {
+                const isSelected = currentCity?.name?.toLowerCase() === preset.name.toLowerCase();
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    className={`city-preset-pill ${isSelected ? 'active' : ''}`}
+                    onClick={() => onSelectCity(preset)}
+                    title={`Switch telemetry to ${preset.name}`}
+                    aria-pressed={isSelected}
+                  >
+                    {preset.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

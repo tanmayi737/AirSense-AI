@@ -24,7 +24,8 @@ export default function AdvisorView({
   telemetry,
   cpcbData,
   cleanWindow,
-  isSimulation
+  isSimulation,
+  selectedPersonas = ['School Child', 'Elderly / Asthma', 'Outdoor Runner']
 }) {
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +102,7 @@ export default function AdvisorView({
       }
     } else if (qLower.includes('jog') || qLower.includes('run') || qLower.includes('exercise')) {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
-        directAnswer = `Cancel outdoor running or cardio workouts immediately. Heavy aerobic minute ventilation during smog draws fine soot deep into alveolar pulmonary tissue.`;
+        directAnswer = `Cancel outdoor running or cardio workouts immediately. Breathing heavily during smog pulls fine soot deep into your lungs.`;
       } else if (verdictBadge === 'PROCEED WITH CAUTION') {
         directAnswer = `Postpone outdoor runs to midday or shift to an indoor treadmill session. If running outside, keep intensity strictly low aerobic.`;
       } else {
@@ -148,7 +149,7 @@ export default function AdvisorView({
       pm25: Number(pm25),
       pm10: Number(pm10),
       bestWindow,
-      selectedProfiles: ['School Child', 'Elderly / Asthma', 'Outdoor Runner'],
+      selectedProfiles: selectedPersonas && selectedPersonas.length > 0 ? selectedPersonas : ['School Child', 'Elderly / Asthma'],
       selectedActivity: 'Daily Routine',
       isSimulated: Boolean(isSimulation)
     };
@@ -269,7 +270,7 @@ export default function AdvisorView({
           <div className="advisor-header-row">
             <div>
               <span className="subcard-kicker">Natural Language Health Decisions</span>
-              <h3 className="panel-title">AeroSense AI Decision Companion</h3>
+              <h3 className="panel-title">AirSense AI Decision Companion</h3>
             </div>
             <div className="ai-engine-tag">
               <Sparkles size={13} style={{ color: 'var(--color-moss)' }} />

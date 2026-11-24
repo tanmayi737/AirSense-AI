@@ -32,3 +32,6 @@ Thumbs.db
 
 # Vite cache
 .vite/
+
+# Local runner shim
+powershell.cmd

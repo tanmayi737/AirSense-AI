@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 
 /**
- * AeroSense AI — Vercel Serverless Function Proxy for Gemini API
+ * AirSense AI — Vercel Serverless Function Proxy for Gemini API
  * Securely communicates with Gemini 2.5 Flash without exposing keys to frontend.
  */
 export default async function handler(req, res) {
@@ -36,6 +36,7 @@ export default async function handler(req, res) {
     bestWindow = '11:00 AM – 1:00 PM',
     selectedProfiles = ['School Child', 'Elderly / Asthma'],
     selectedActivity = 'Morning School Run',
+    durationMinutes = 45,
     isSimulated = false
   } = req.body || {};
 
@@ -54,20 +55,22 @@ export default async function handler(req, res) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    const systemPrompt = `You are AeroSense AI, an authoritative Urban Air Quality Decision Assistant for Indian cities.
+    const systemPrompt = `You are AirSense AI, an authoritative Urban Air Quality Decision Assistant for Indian cities.
 You synthesize live sensor telemetry, Central Pollution Control Board (CPCB) standards, and WHO health guidelines into actionable household decisions.
 
 Strict Operational Guidelines:
-1. Grounding: Never fabricate, alter, or hallucinate the telemetry. Use the exact values provided (City: ${city}, Indian CPCB AQI: ${cpcbAqi}, US AQI: ${usAqi}, Category: ${category}, Dominant Pollutant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³, Cleanest Window: ${bestWindow}).
-2. Simulation Mode: ${isSimulated ? 'NOTE: The user is evaluating an active SIMULATED WINTER SMOG event (Severe temperature inversion). Explicitly mention this synthetic test condition in your response.' : 'This is live real-time ambient telemetry.'}
-3. Medical Ethics: Do NOT provide formal medical diagnoses or prescriptions. Provide preventive environmental health guidance.
-4. Indian Urban Context: Provide practical advice for Indian urban households (e.g. wet mopping vs dry brooming, kitchen exhaust during tadka/frying, sealing doors during morning thermal inversion 8-11 AM, N95 masks, metro/carpool shifts).
-5. Output: Return structured JSON matching the provided schema.`;
+1. Warm, Everyday Language: Explain risks and actions in simple, friendly, empathetic everyday terms. Never use clinical jargon such as "bronchospasm", "vascular inflammation", "minute ventilation", or "particle deposition".
+2. Grounding: Never fabricate, alter, or hallucinate the telemetry. Use the exact values provided (City: ${city}, Indian CPCB AQI: ${cpcbAqi}, US AQI: ${usAqi}, Category: ${category}, Dominant Pollutant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³, Cleanest Window: ${bestWindow}, Planned Outing Duration: ${durationMinutes} minutes).
+3. Simulation Mode: ${isSimulated ? 'NOTE: The user is evaluating an active SIMULATED WINTER SMOG event (Severe temperature inversion). Explicitly mention this synthetic test condition in your response.' : 'This is live real-time ambient telemetry.'}
+4. Medical Ethics: Do NOT provide formal medical diagnoses or prescriptions. Provide preventive environmental health guidance.
+5. Indian Urban Context: Provide practical advice for Indian urban households (e.g. wet mopping vs dry brooming, kitchen exhaust during tadka/frying, sealing doors during morning thermal inversion 8-11 AM, N95 masks, metro/carpool shifts).
+6. Output: Return structured JSON matching the provided schema.`;
 
     const userPrompt = `Household Context:
 - Target City: ${city}
 - Active Profiles: ${Array.isArray(selectedProfiles) ? selectedProfiles.join(', ') : selectedProfiles}
 - Planned Activity: ${selectedActivity}
+- Planned Duration: ${durationMinutes} minutes
 - Telemetry: Indian CPCB AQI ${cpcbAqi} (${category}), Dominant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³
 - Cleanest 2-Hour Outdoor Window Today: ${bestWindow}
 ${isSimulated ? '- Simulation Flag: ACTIVE WINTER SMOG SIMULATION' : ''}
@@ -75,7 +78,7 @@ ${isSimulated ? '- Simulation Flag: ACTIVE WINTER SMOG SIMULATION' : ''}
 User's Question:
 "${question}"
 
-Provide a structured, authoritative decision card.`;
+Provide a structured, authoritative decision card in warm, everyday language.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

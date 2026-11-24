@@ -10,11 +10,22 @@ import {
   Wind,
   ShieldCheck,
   AlertTriangle,
-  Info
+  XCircle,
+  Info,
+  Sparkles,
+  Loader2,
+  X,
+  Clock
 } from 'lucide-react';
 import { calculateSustainableOffset } from '../utils/decisionEngine';
 
-export default function SanctuaryView({ aqiData, cleanWindow }) {
+export default function SanctuaryView({
+  aqiData,
+  cleanWindow,
+  currentCity,
+  isSimulation,
+  selectedPersonas = ['School Child', 'Elderly / Asthma']
+}) {
   // Indoor checklist state
   const [checklist, setChecklist] = useState({
     sealWindows: true,
@@ -27,15 +38,106 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
   const [commuteDistance, setCommuteDistance] = useState(15);
   const [transitMode, setTransitMode] = useState('metro');
 
-  const toggleChecklist = (key) => {
-    setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  // Gemini AI Home Defense Synthesis State
+  const [aiAdvice, setAiAdvice] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
+  const cityName = currentCity?.name || 'Hyderabad';
   const aqi = aqiData?.cpcbAqi || 100;
   const isSevere = aqi > 200;
   const isModerate = aqi > 100;
 
+  // Derive dynamic day/night window label from cleanWindow start hour
+  const getWindowLabel = () => {
+    if (!cleanWindow?.displayWindow) return { label: 'Solar Convection Window', isNight: false };
+    // Parse the start hour from displayWindow (e.g. "11:00 AM – 1:00 PM" or "9:00 PM – 11:00 PM")
+    const timeStr = cleanWindow.displayWindow.split('–')[0].trim();
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return { label: 'Solar Convection Window', isNight: false };
+    let hour = parseInt(match[1], 10);
+    const period = match[3].toUpperCase();
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    // Late-Night: 6 PM (18) to 5 AM (5); Solar: 10 AM (10) to 4 PM (16)
+    const isNight = hour >= 18 || hour < 5;
+    const isSolar = hour >= 10 && hour < 16;
+    if (isNight) return { label: 'Late-Night Dispersion Window', isNight: true };
+    if (isSolar) return { label: 'Solar Convection Window', isNight: false };
+    return { label: 'Morning Flush Window', isNight: false };
+  };
+  const windowMeta = getWindowLabel();
+
+  const toggleChecklist = (key) => {
+    setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const offset = calculateSustainableOffset(commuteDistance, transitMode);
+
+  // Synthesize indoor microclimate guidance via Gemini AI
+  const handlePersonalizeSanctuaryAi = async () => {
+    setIsAiLoading(true);
+    const profiles = selectedPersonas && selectedPersonas.length > 0 ? selectedPersonas : ['School Child', 'Elderly / Asthma'];
+    const prompt = `How should a household with ${profiles.join(' and ')} in ${cityName} with Indian CPCB AQI of ${aqi} protect indoor air quality, schedule window ventilation, and minimize smoke exposure today?`;
+
+    try {
+      const response = await fetch('/api/advise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: prompt,
+          city: cityName,
+          cpcbAqi: aqi,
+          usAqi: aqi,
+          category: isSevere ? 'Poor / Severe' : isModerate ? 'Moderate' : 'Good / Satisfactory',
+          dominantPollutant: aqiData?.dominantPollutant || 'PM2.5',
+          pm25: Number(aqiData?.subIndices?.pm2_5 || aqiData?.pm2_5 || 45),
+          pm10: Number(aqiData?.subIndices?.pm10 || aqiData?.pm10 || 65),
+          bestWindow: cleanWindow?.displayWindow || '11:00 AM – 1:00 PM',
+          selectedProfiles: profiles,
+          selectedActivity: 'Home Ventilation',
+          durationMinutes: 45,
+          isSimulated: Boolean(isSimulation)
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.data && !result.fallback) {
+        setAiAdvice({
+          ...result.data,
+          isFallback: false
+        });
+      } else {
+        setAiAdvice({
+          verdictBadge: isSevere ? 'AVOID / INDOORS ONLY' : isModerate ? 'PROCEED WITH CAUTION' : 'SAFE TO PROCEED',
+          directAnswer: isSevere
+            ? `Keep all external windows sealed in ${cityName}. Run indoor True-HEPA purifiers on medium-high continuously.`
+            : windowMeta?.isNight
+              ? `Open cross-facing windows briefly (15 min) during the ${windowMeta.label} (${cleanWindow?.displayWindow || '10:00 PM – 12:00 AM'}) when late-night traffic drops and surface dust settles.`
+              : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale CO₂.`,
+          whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Infiltration of outdoor fine dust elevates indoor particulate levels rapidly.`,
+          saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'reduced late-night traffic allows brief safe cross-ventilation' : 'warm solar convection lifts surface smog'}.`,
+          indoorAction: `Damp microfiber mop daily and run kitchen exhaust chimney on high during cooking.`,
+          isFallback: true
+        });
+      }
+    } catch {
+      setAiAdvice({
+        verdictBadge: isSevere ? 'AVOID / INDOORS ONLY' : isModerate ? 'PROCEED WITH CAUTION' : 'SAFE TO PROCEED',
+        directAnswer: isSevere
+          ? `Keep all external windows sealed in ${cityName}. Run indoor True-HEPA purifiers on medium-high continuously.`
+          : windowMeta?.isNight
+            ? `Open cross-facing windows briefly (15 min) during the ${windowMeta.label} (${cleanWindow?.displayWindow || '10:00 PM – 12:00 AM'}) when late-night traffic drops and surface dust settles.`
+            : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale CO₂.`,
+        whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Infiltration of outdoor fine dust elevates indoor particulate levels rapidly.`,
+        saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'reduced late-night traffic allows brief safe cross-ventilation' : 'warm solar convection lifts surface smog'}.`,
+        indoorAction: `Damp microfiber mop daily and run kitchen exhaust chimney on high during cooking.`,
+        isFallback: true
+      });
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   return (
     <div className="tab-view-container sanctuary-view-layout">
@@ -60,30 +162,97 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
             </div>
           </div>
 
-          {/* Diurnal Ventilation Window Guide */}
+          {/* Diurnal Ventilation Window Guide with Zero Jargon */}
           <div className="diurnal-guide-strip">
             <div className={`diurnal-phase ${isSevere ? 'phase-lock' : 'phase-caution'}`}>
               <span className="phase-time">07:00 – 10:30 AM</span>
               <span className="phase-title">Morning Inversion Peak</span>
-              <p className="phase-desc">Cold nocturnal air traps exhaust. Keep doors and balcony glass tightly shut.</p>
+              <p className="phase-desc">Cold ground air traps vehicle exhaust smoke low—keep doors and balcony glass tightly shut from 7 to 10:30 AM.</p>
             </div>
 
             <div className={`diurnal-phase ${isSevere ? 'phase-lock' : 'phase-open'}`}>
               <span className="phase-time">{cleanWindow?.displayWindow || '11:00 AM – 02:00 PM'}</span>
-              <span className="phase-title">Solar Convection Window</span>
+              <span className="phase-title">{windowMeta.label}</span>
               <p className="phase-desc">
                 {isSevere
-                  ? 'Smog remains critical. Keep sealed and run indoor air purifiers.'
-                  : 'Atmospheric boundary layer expands. Brief 20-min cross-ventilation flushes CO₂.'}
+                  ? `Smog in ${cityName} remains severe. Keep windows sealed and operate indoor air purifiers.`
+                  : windowMeta.isNight
+                    ? `Late-evening traffic drops significantly after 10 PM — briefly open cross-facing windows for 15 minutes to exchange stale indoor air before sealing again for the night.`
+                    : 'Warm midday sun lifts and scatters smoke—brief 20-min window opening flushes indoor CO₂ safely.'}
               </p>
             </div>
 
             <div className={`diurnal-phase ${isSevere ? 'phase-lock' : 'phase-caution'}`}>
               <span className="phase-time">06:00 – 10:00 PM</span>
               <span className="phase-title">Evening Traffic Trapping</span>
-              <p className="phase-desc">Post-sunset thermal cooling locks vehicular NO₂ near ground level. Reseal windows.</p>
+              <p className="phase-desc">Post-sunset cooling traps vehicle exhaust near street level—reseal all doors and windows.</p>
             </div>
           </div>
+
+          {/* AI Home Defense Button */}
+          <div className="sanctuary-ai-btn-row">
+            <button
+              type="button"
+              className="gemini-personalize-btn"
+              onClick={handlePersonalizeSanctuaryAi}
+              disabled={isAiLoading}
+              aria-label="Synthesize home defense advice with Gemini AI"
+            >
+              {isAiLoading ? (
+                <>
+                  <Loader2 size={14} className="spin-animate" />
+                  <span>Synthesizing Home Protocol...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} />
+                  <span>Personalize Home Protocol with Gemini AI</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* AI Advice Callout (if active) */}
+          {aiAdvice && (
+            <div className="tactile-card ai-synthesis-featured-card" style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+              <div className="ai-featured-header">
+                <div className="ai-featured-title-wrap">
+                  <Sparkles size={14} style={{ color: 'var(--color-moss)' }} />
+                  <strong>Gemini AI Home Protocol for {cityName}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="ai-dismiss-btn"
+                  onClick={() => setAiAdvice(null)}
+                  aria-label="Dismiss AI Advice"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="ai-featured-body">
+                <p className="ai-direct-answer">{aiAdvice.directAnswer}</p>
+                <div className="ai-why-row">
+                  <strong>Why: </strong>
+                  <span>{aiAdvice.whyItMatters}</span>
+                </div>
+                <div className="ai-actions-grid">
+                  <div className="ai-action-item">
+                    <span className="ai-item-lbl">
+                      <Clock size={11} style={{ color: 'var(--color-moss)' }} /> Ventilation Swap
+                    </span>
+                    <p>{aiAdvice.saferAlternative}</p>
+                  </div>
+                  <div className="ai-action-item">
+                    <span className="ai-item-lbl">
+                      <Home size={11} style={{ color: '#B45309' }} /> Filter / Mop Step
+                    </span>
+                    <p>{aiAdvice.indoorAction}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Interactive Checklist */}
           <div className="indoor-checklist-subcard">
@@ -107,7 +276,7 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
                 </div>
                 <div className="check-text-content">
                   <strong>Weatherstrip External Door Gaps & Windows</strong>
-                  <p>Eliminates microscopic drafts where outdoor fine PM2.5 infiltrates interior living spaces.</p>
+                  <p>Blocks tiny gaps where fine outdoor dust sneaks into living spaces.</p>
                 </div>
               </div>
 
@@ -127,7 +296,7 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
                 </div>
                 <div className="check-text-content">
                   <strong>Microfiber Damp Mopping (Zero Dry Sweeping)</strong>
-                  <p>Dry brooming resuspends settling toxic PM10 into breathing height. Damp mopping binds particles permanently.</p>
+                  <p>Dry brooms toss settled toxic dust back into the air at breathing height. Damp microfiber cloths lock dust down permanently.</p>
                 </div>
               </div>
 
@@ -147,7 +316,7 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
                 </div>
                 <div className="check-text-content">
                   <strong>High Chimney Extraction During Cooking</strong>
-                  <p>Spices, mustard oil tempering, and frying cause internal PM2.5 spikes &gt; 350 µg/m³. Close interior kitchen doors.</p>
+                  <p>Indian cooking (tadka, frying, roasting spices) creates extreme indoor smoke (&gt;300 µg/m³)—run high exhaust and keep interior kitchen doors shut.</p>
                 </div>
               </div>
 
@@ -167,7 +336,7 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
                 </div>
                 <div className="check-text-content">
                   <strong>Establish Primary Bedroom as HEPA Clean Zone</strong>
-                  <p>Keep bedroom door shut with True-HEPA filter operating on medium overnight to enable lung alveolar recovery.</p>
+                  <p>Keep bedroom door shut with True-HEPA purifier running on medium overnight to allow tired lungs to rest and recover.</p>
                 </div>
               </div>
             </div>
@@ -190,7 +359,7 @@ export default function SanctuaryView({ aqiData, cleanWindow }) {
           </div>
 
           <p className="swaps-intro-text">
-            Compare the quantified particulate & carbon pollution avoided by opting for low-emission transit modes against single-occupant petrol driving.
+            Compare the quantified particulate & carbon pollution avoided by opting for low-emission transit modes against single-occupant petrol driving in {cityName}.
           </p>
 
           {/* Distance Buttons */}

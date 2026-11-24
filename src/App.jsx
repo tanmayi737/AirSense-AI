@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { MapPin, Users, Sparkles, Layers, Flame } from 'lucide-react';
 import Header from './components/Header';
 import PulseView from './components/PulseView';
 import HouseholdView from './components/HouseholdView';
@@ -23,6 +24,17 @@ export default function App() {
   const [isSeniorVision, setIsSeniorVision] = useState(false);
   const [activeTab, setActiveTab] = useState('pulse');
   const [announcement, setAnnouncement] = useState('');
+  const [selectedPersonas, setSelectedPersonas] = useState(['School Child', 'Elderly / Asthma']);
+
+  // Handle Persona Selection for the household
+  const handleTogglePersona = (id) => {
+    setSelectedPersonas((prev) => {
+      if (prev.includes(id)) {
+        return prev.length > 1 ? prev.filter((p) => p !== id) : prev;
+      }
+      return [...prev, id];
+    });
+  };
 
   // Helper for screen reader announcements
   const announce = useCallback((message) => {
@@ -107,7 +119,20 @@ export default function App() {
   }, [telemetry]);
 
   return (
-    <div className={`app-viewport-root ${isSeniorVision ? 'senior-vision-mode' : ''}`}>
+    <div
+      className={`app-viewport-root ${isSeniorVision ? 'senior-vision-mode' : ''}`}
+      data-aqi-tier={
+        isSeniorVision
+          ? undefined
+          : !cpcbData
+          ? 'good'
+          : cpcbData.cpcbAqi <= 50
+          ? 'good'
+          : cpcbData.cpcbAqi <= 100
+          ? 'moderate'
+          : 'poor'
+      }
+    >
       {/* Screen Reader Live Announcements */}
       <div className="sr-only" aria-live="polite" role="status">
         {announcement}
@@ -126,6 +151,65 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
       />
+
+      {/* Sleek Live Context Pill Bar */}
+      <section className="live-context-bar" aria-label="Active Air Quality Context">
+        <div className="live-context-container">
+          {/* Active City Pill */}
+          <div className="context-pill context-city-pill" title="Selected geographic location">
+            <MapPin size={12} className="context-icon" />
+            <strong className="context-main-text">{currentCity.name}</strong>
+            {currentCity.admin1 && <span className="context-sub-text">{currentCity.admin1}</span>}
+          </div>
+
+          {/* CPCB AQI Status Badge */}
+          <div
+            className="context-pill context-aqi-pill"
+            style={{
+              borderColor: cpcbData?.color ? `${cpcbData.color}40` : 'var(--border-hairline)'
+            }}
+            title="Official Indian CPCB Air Quality Index"
+          >
+            <span
+              className="context-aqi-dot"
+              style={{ backgroundColor: cpcbData?.color || 'var(--color-moss)' }}
+            />
+            <span className="context-main-text tabular-nums">
+              CPCB AQI {cpcbData?.cpcbAqi ?? '--'}
+            </span>
+            <span
+              className="context-category-tag"
+              style={{ color: cpcbData?.color || 'var(--color-moss)' }}
+            >
+              {cpcbData?.category || 'Moderate'}
+            </span>
+            {isSimulation && <span className="context-sim-tag"><Flame size={10} /> Smog 360</span>}
+          </div>
+
+          {/* Dominant Pollutant */}
+          <div className="context-pill context-dominant-pill" title="Dominant criteria pollutant driving AQI">
+            <Layers size={12} className="context-icon" />
+            <span className="context-sub-text">Dominant:</span>
+            <strong className="context-main-text">{cpcbData?.dominantPollutant || 'PM2.5'}</strong>
+          </div>
+
+          {/* Selected Family Profiles */}
+          <div className="context-pill context-profiles-pill" title="Active family profiles tailoring recommendations">
+            <Users size={12} className="context-icon" />
+            <span className="context-sub-text">Profiles:</span>
+            <span className="context-main-text">{selectedPersonas.join(' • ')}</span>
+          </div>
+
+          {/* Cleanest Window */}
+          {cleanWindowData?.hasData && (
+            <div className="context-pill context-window-pill" title="Cleanest 2-hour outdoor window today">
+              <Sparkles size={12} className="context-icon" style={{ color: 'var(--color-moss)' }} />
+              <span className="context-sub-text">Cleanest:</span>
+              <span className="context-main-text">{cleanWindowData.displayWindow}</span>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Single-Viewport Main Stage */}
       <main className="app-single-viewport-body" id="main-content" role="main">
@@ -167,9 +251,15 @@ export default function App() {
                   usAqi: telemetry?.current?.us_aqi ?? 100,
                   pm2_5: telemetry?.current?.pm2_5 ?? 35,
                   pm10: telemetry?.current?.pm10 ?? 45,
-                  dominantPollutant: cpcbData?.dominantPollutant ?? 'PM2.5'
+                  dominantPollutant: cpcbData?.dominantPollutant ?? 'PM2.5',
+                  category: cpcbData?.category ?? 'Moderate',
+                  time: telemetry?.current?.time
                 }}
                 cleanWindow={cleanWindowData}
+                currentCity={currentCity}
+                isSimulation={isSimulation}
+                selectedPersonas={selectedPersonas}
+                onTogglePersona={handleTogglePersona}
               />
             )}
 
@@ -177,6 +267,9 @@ export default function App() {
               <SanctuaryView
                 aqiData={cpcbData}
                 cleanWindow={cleanWindowData}
+                currentCity={currentCity}
+                isSimulation={isSimulation}
+                selectedPersonas={selectedPersonas}
               />
             )}
 
@@ -187,6 +280,7 @@ export default function App() {
                 cpcbData={cpcbData}
                 cleanWindow={cleanWindowData}
                 isSimulation={isSimulation}
+                selectedPersonas={selectedPersonas}
               />
             )}
           </>
