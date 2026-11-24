@@ -80,11 +80,11 @@ export default function AdvisorView({
     const qLower = query.toLowerCase();
     let directAnswer = '';
     const whyItMatters = `Active ambient telemetry in ${city} records Indian CPCB AQI at ${cpcbAqi} (${category}, Dominant: ${dominantPollutant}) with PM2.5 at ${pm25} µg/m³.`;
-    const saferAlternative = `Shift outdoor movement to today's cleanest 2-hour window (${bestWindow}), when convective solar warming disperses trapped surface particulates.`;
-    const indoorAction =
+    let saferAlternative = `Shift outdoor movement to today's cleanest 2-hour window (${bestWindow}), when convective solar warming disperses trapped surface particulates.`;
+    let indoorAction =
       'Keep exterior windows sealed, execute damp microfiber mopping, and run HEPA air cleaners in primary bedrooms.';
 
-    if (qLower.includes('school') || qLower.includes('kid') || qLower.includes('child')) {
+    if (qLower.includes('school') || qLower.includes('kid') || qLower.includes('child') || qLower.includes('student')) {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
         directAnswer = `Keep school children indoors for morning hours. With severe particulate pollution in ${city}, open walking routes and outdoor playground drills should be canceled.`;
       } else if (verdictBadge === 'PROCEED WITH CAUTION') {
@@ -92,7 +92,9 @@ export default function AdvisorView({
       } else {
         directAnswer = `It is completely safe for children to walk to school and participate in standard outdoor playground games in ${city}.`;
       }
-    } else if (qLower.includes('window') || qLower.includes('ventilat')) {
+      saferAlternative = `Schedule outdoor play during the cleanest window (${bestWindow}) or move physical education into indoor halls.`;
+      indoorAction = 'Ensure classrooms keep road-facing windows closed during morning rush-hour traffic.';
+    } else if (qLower.includes('window') || qLower.includes('ventilat') || qLower.includes('fresh air') || qLower.includes('balcony')) {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
         directAnswer = `Keep all home windows tightly sealed right now. Infiltration of external combustion soot will immediately spike indoor particulate levels.`;
       } else if (verdictBadge === 'PROCEED WITH CAUTION') {
@@ -100,7 +102,9 @@ export default function AdvisorView({
       } else {
         directAnswer = `Yes, opening windows right now is safe and recommended. Fresh cross-ventilation will clear indoor carbon dioxide safely.`;
       }
-    } else if (qLower.includes('jog') || qLower.includes('run') || qLower.includes('exercise')) {
+      saferAlternative = `Only open cross-facing windows during the cleanest window (${bestWindow}) for 15-20 minutes.`;
+      indoorAction = 'Use draft stoppers under doors and wet-wipe window sills with damp microfiber to trap soot.';
+    } else if (qLower.includes('jog') || qLower.includes('run') || qLower.includes('exercise') || qLower.includes('workout') || qLower.includes('walk') || qLower.includes('cycl')) {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
         directAnswer = `Cancel outdoor running or cardio workouts immediately. Breathing heavily during smog pulls fine soot deep into your lungs.`;
       } else if (verdictBadge === 'PROCEED WITH CAUTION') {
@@ -108,11 +112,35 @@ export default function AdvisorView({
       } else {
         directAnswer = `Outdoor running conditions are safe and favorable in ${city}. Particulate matter is well within healthy exercise limits.`;
       }
+      saferAlternative = `Shift workouts to the cleanest window (${bestWindow}) or substitute with indoor stretching and yoga.`;
+      indoorAction = 'Keep indoor workout zones isolated with a HEPA air cleaner running 30 minutes prior.';
+    } else if (qLower.includes('mask') || qLower.includes('n95') || qLower.includes('protect')) {
+      if (verdictBadge === 'AVOID / INDOORS ONLY') {
+        directAnswer = `Strict N95 or FFP2 masking is essential for any outdoor step in ${city}. Cloth or surgical masks do not filter fine PM2.5.`;
+      } else if (verdictBadge === 'PROCEED WITH CAUTION') {
+        directAnswer = `Wear an N95 mask if commuting in open autos, two-wheelers, or walking near busy arterial roads.`;
+      } else {
+        directAnswer = `Masks are not currently mandatory for healthy individuals, though sensitive groups may still wear one near dense traffic.`;
+      }
+      saferAlternative = `Prefer closed transit (Metro or AC bus) over open-air walking during high dust hours.`;
+      indoorAction = 'Store reusable masks in clean, dry pouches and inspect nose clips for a tight seal.';
+    } else if (qLower.includes('purifier') || qLower.includes('hepa') || qLower.includes('indoor') || qLower.includes('filter')) {
+      directAnswer = verdictBadge === 'AVOID / INDOORS ONLY'
+        ? `Run True-HEPA air purifiers continuously on medium-high in occupied bedrooms in ${city}. Keep interior doors shut to maintain clean zones.`
+        : `Run air purifiers on auto mode or low speed to maintain low indoor dust levels.`;
+      saferAlternative = `Establish the main bedroom as a sealed sanctuary zone with dedicated filtration.`;
+      indoorAction = 'Clean pre-filters bi-weekly and avoid dry dusting or sweeping that tosses settled soot back into the air.';
+    } else if (qLower.includes('baby') || qLower.includes('infant') || qLower.includes('elder') || qLower.includes('asthma') || qLower.includes('cough')) {
+      directAnswer = verdictBadge === 'AVOID / INDOORS ONLY'
+        ? `High alert for vulnerable family members in ${city}. Keep them in sealed rooms with air filtration and monitor for shortness of breath or persistent coughing.`
+        : `Vulnerable members should minimize strenuous outdoor exposure and carry prescribed inhalers if sensitive.`;
+      saferAlternative = `Limit balcony or outdoor garden time strictly to the midday cleanest window (${bestWindow}).`;
+      indoorAction = 'Maintain indoor humidity around 40-50% and use damp microfiber cloths on all surfaces.';
     } else {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
         directAnswer = `Maintain active indoor containment protocols in ${city}. High external particulate loads require continuous True-HEPA purification.`;
       } else if (verdictBadge === 'PROCEED WITH CAUTION') {
-        directAnswer = `Exercise caution across household activities. Run the kitchen chimney during frying and avoid burning candles or coils indoors.`;
+        directAnswer = `Exercise caution across household activities in ${city}. Run the kitchen chimney during frying and minimize outdoor exposure.`;
       } else {
         directAnswer = `Current urban air quality in ${city} is satisfactory. Standard household routines can proceed without restrictions.`;
       }
@@ -161,26 +189,49 @@ export default function AdvisorView({
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      let result = null;
+      let parseError = null;
+      try {
+        result = await response.json();
+      } catch (e) {
+        parseError = e.message;
+      }
 
-      if (response.ok && result.data && !result.fallback) {
+      if (response.ok && result?.data && !result?.fallback) {
         setActiveAdvice({
           ...result.data,
           question: q,
           isLocalFallback: false
         });
       } else {
+        const errorMsg = result?.error || (parseError ? `Failed to parse response (${parseError})` : `Server responded with HTTP ${response.status} ${response.statusText}`);
+        console.error(`[/api/advise] Request returned HTTP ${response.status}:`, errorMsg, result || '');
+
+        let fallbackReason = 'Deterministic Rule Engine Fallback';
+        if (result?.error?.includes('GEMINI_API_KEY')) {
+          fallbackReason = 'Rule Engine Fallback (GEMINI_API_KEY not configured on server)';
+        } else if (response.status === 404 || parseError) {
+          fallbackReason = `Rule Engine Fallback (API route returned HTTP ${response.status} HTML/404)`;
+        } else if (response.status === 503 || result?.fallback) {
+          fallbackReason = `Rule Engine Fallback (${result?.error || `HTTP ${response.status} service unavailable`})`;
+        } else if (!response.ok) {
+          fallbackReason = `Rule Engine Fallback (HTTP ${response.status} ${response.statusText})`;
+        }
+
         const fallbackData = generateLocalFallback(q);
         setActiveAdvice({
           ...fallbackData,
-          question: q
+          question: q,
+          fallbackReason
         });
       }
-    } catch {
+    } catch (err) {
+      console.error('[/api/advise] Network or fetch error:', err);
       const fallbackData = generateLocalFallback(q);
       setActiveAdvice({
         ...fallbackData,
-        question: q
+        question: q,
+        fallbackReason: `Rule Engine Fallback (Network error: ${err.message || 'connection failed'})`
       });
     } finally {
       setIsLoading(false);
@@ -380,9 +431,9 @@ export default function AdvisorView({
               {/* Footnote Attribution */}
               <div className="attribution-footer">
                 {activeAdvice.isLocalFallback ? (
-                  <span className="fallback-note">
+                  <span className="fallback-note" title={activeAdvice.fallbackReason || 'Deterministic Rule Engine'}>
                     <KeyRound size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                    Deterministic Rule Engine Fallback • Configure <code>GEMINI_API_KEY</code> on server for live GenAI
+                    {activeAdvice.fallbackReason || 'Deterministic Rule Engine Fallback'}
                   </span>
                 ) : (
                   <span className="genai-note">

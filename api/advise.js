@@ -24,6 +24,16 @@ export default async function handler(req, res) {
     });
   }
 
+  // Support both pre-parsed JSON bodies and raw string streams
+  let parsedBody = req.body;
+  if (typeof parsedBody === 'string') {
+    try {
+      parsedBody = JSON.parse(parsedBody);
+    } catch {
+      parsedBody = {};
+    }
+  }
+
   const {
     question,
     city = 'Hyderabad',
@@ -38,7 +48,7 @@ export default async function handler(req, res) {
     selectedActivity = 'Morning School Run',
     durationMinutes = 45,
     isSimulated = false
-  } = req.body || {};
+  } = parsedBody || {};
 
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'A user question string is required.' });
