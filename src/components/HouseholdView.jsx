@@ -442,7 +442,7 @@ export default function HouseholdView({
 
               <div className="ai-featured-footer">
                 <span className="ai-attribution-tag">
-                  {aiAdvice.isFallback ? 'Deterministic Rule Engine Fallback' : 'Synthesized live by Gemini 2.5 Flash'}
+                  {aiAdvice.isFallback ? 'Deterministic Rule Engine Fallback' : 'Synthesized live by Gemini 3.8 Flash'}
                 </span>
               </div>
             </div>

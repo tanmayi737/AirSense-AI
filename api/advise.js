@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 /**
  * AirSense AI — Vercel Serverless Function Proxy for Gemini API
- * Securely communicates with Gemini 2.5 Flash without exposing keys to frontend.
+ * Securely communicates with Gemini 3.8 Flash without exposing keys to frontend.
  */
 export default async function handler(req, res) {
   // CORS Headers
@@ -93,53 +93,82 @@ User's Question:
 
 Provide a structured, authoritative decision card in warm, everyday language.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: `${systemPrompt}\n\n${userPrompt}`,
-      config: {
-        temperature: 0.3,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            verdictBadge: {
-              type: Type.STRING,
-              description: 'MUST be exactly one of: "SAFE TO PROCEED", "PROCEED WITH CAUTION", or "AVOID / INDOORS ONLY"'
-            },
-            directAnswer: {
-              type: Type.STRING,
-              description: 'Concise 2-sentence answer directly resolving the user question for their household.'
-            },
-            whyItMatters: {
-              type: Type.STRING,
-              description: '1 to 2 sentences linking the recommendation directly to active PM2.5/PM10 and dominant pollutant concentrations.'
-            },
-            saferAlternative: {
-              type: Type.STRING,
-              description: 'Concrete safer time window (referencing the cleanest window) or low-emission swap.'
-            },
-            indoorAction: {
-              type: Type.STRING,
-              description: 'Specific practical home air-protection step (e.g. wet mopping, kitchen chimney, HEPA room).'
+    const maxAttempts = 3;
+    let response = null;
+    let lastErr = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: `${systemPrompt}\n\n${userPrompt}`,
+          config: {
+            temperature: 0.3,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                verdictBadge: {
+                  type: Type.STRING,
+                  description: 'MUST be exactly one of: "SAFE TO PROCEED", "PROCEED WITH CAUTION", or "AVOID / INDOORS ONLY"'
+                },
+                directAnswer: {
+                  type: Type.STRING,
+                  description: 'Concise 2-sentence answer directly resolving the user question for their household.'
+                },
+                whyItMatters: {
+                  type: Type.STRING,
+                  description: '1 to 2 sentences linking the recommendation directly to active PM2.5/PM10 and dominant pollutant concentrations.'
+                },
+                saferAlternative: {
+                  type: Type.STRING,
+                  description: 'Concrete safer time window (referencing the cleanest window) or low-emission swap.'
+                },
+                indoorAction: {
+                  type: Type.STRING,
+                  description: 'Specific practical home air-protection step (e.g. wet mopping, kitchen chimney, HEPA room).'
+                }
+              },
+              required: [
+                'verdictBadge',
+                'directAnswer',
+                'whyItMatters',
+                'saferAlternative',
+                'indoorAction'
+              ],
+              propertyOrdering: [
+                'verdictBadge',
+                'directAnswer',
+                'whyItMatters',
+                'saferAlternative',
+                'indoorAction'
+              ]
             }
-          },
-          required: [
-            'verdictBadge',
-            'directAnswer',
-            'whyItMatters',
-            'saferAlternative',
-            'indoorAction'
-          ],
-          propertyOrdering: [
-            'verdictBadge',
-            'directAnswer',
-            'whyItMatters',
-            'saferAlternative',
-            'indoorAction'
-          ]
+          }
+        });
+        break;
+      } catch (err) {
+        lastErr = err;
+        const msg = String(err?.message || '');
+        const isTransient503 =
+          err?.status === 503 ||
+          err?.code === 503 ||
+          msg.includes('503') ||
+          msg.includes('UNAVAILABLE') ||
+          msg.toLowerCase().includes('high demand');
+
+        if (isTransient503 && attempt < maxAttempts) {
+          const delayMs = 1500 + (attempt - 1) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
         }
+        throw err;
       }
-    });
+    }
+
+    if (!response) {
+      throw lastErr || new Error('Gemini API call failed after retries.');
+    }
 
     const text = response.text;
     const parsed = JSON.parse(text);
