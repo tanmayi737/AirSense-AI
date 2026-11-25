@@ -178,7 +178,7 @@ export default function SanctuaryView({
                   ? `Smog in ${cityName} remains severe. Keep windows sealed and operate indoor air purifiers.`
                   : windowMeta.isNight
                     ? `Late-evening traffic drops significantly after 10 PM — briefly open cross-facing windows for 15 minutes to exchange stale indoor air before sealing again for the night.`
-                    : 'Warm midday sun lifts and scatters smoke—brief 20-min window opening flushes indoor CO₂ safely.'}
+                    : 'Warm midday sun lifts and scatters smoke—brief 20-min window opening flushes stale indoor air safely.'}
               </p>
             </div>
 

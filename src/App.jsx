@@ -124,13 +124,9 @@ export default function App() {
       data-aqi-tier={
         isSeniorVision
           ? undefined
-          : !cpcbData
-          ? 'good'
-          : cpcbData.cpcbAqi <= 50
-          ? 'good'
-          : cpcbData.cpcbAqi <= 100
-          ? 'moderate'
-          : 'poor'
+          : isSimulation || (cpcbData && cpcbData.cpcbAqi > 200)
+          ? 'poor'
+          : 'normal'
       }
     >
       {/* Screen Reader Live Announcements */}
