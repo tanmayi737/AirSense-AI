@@ -64,14 +64,14 @@ export default function CitySearch({ onSelectCity, currentCity }) {
         <input
           type="text"
           className="city-search-input"
-          placeholder="Search city (e.g. Hyderabad, Delhi)..."
+          placeholder="Search city (e.g. Hyd)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setIsOpen(true)}
-          aria-label="Search city for air quality telemetry"
+          aria-label="Search city for air quality"
         />
         {isSearching && (
-          <span style={{ position: 'absolute', right: '1.75rem', display: 'flex', color: 'var(--color-teal)' }}>
+          <span style={{ position: 'absolute', right: '1.75rem', display: 'flex', color: 'var(--color-moss)' }}>
             <Loader2 size={14} className="spin-animate" />
           </span>
         )}

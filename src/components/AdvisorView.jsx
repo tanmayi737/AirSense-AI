@@ -79,10 +79,10 @@ export default function AdvisorView({
 
     const qLower = query.toLowerCase();
     let directAnswer = '';
-    const whyItMatters = `Active ambient telemetry in ${city} records Indian CPCB AQI at ${cpcbAqi} (${category}, Dominant: ${dominantPollutant}) with PM2.5 at ${pm25} µg/m³.`;
-    let saferAlternative = `Shift outdoor movement to today's cleanest 2-hour window (${bestWindow}), when convective solar warming disperses trapped surface particulates.`;
+    const whyItMatters = `Live readings in ${city} show Indian CPCB AQI at ${cpcbAqi} (${category}, Dominant: ${dominantPollutant}) with PM2.5 at ${pm25} µg/m³.`;
+    let saferAlternative = `Shift outdoor plans to today's cleanest 2-hour window (${bestWindow}), when warm daytime air helps clear trapped dust.`;
     let indoorAction =
-      'Keep exterior windows sealed, execute damp microfiber mopping, and run HEPA air cleaners in primary bedrooms.';
+      'Keep outside windows closed, wipe floors with a damp microfiber mop, and run HEPA air cleaners in bedrooms.';
 
     if (qLower.includes('school') || qLower.includes('kid') || qLower.includes('child') || qLower.includes('student')) {
       if (verdictBadge === 'AVOID / INDOORS ONLY') {
@@ -271,9 +271,9 @@ export default function AdvisorView({
       {/* LEFT RAIL (35%): Live Context Snapshot */}
       <div className="advisor-left-rail">
         <div className="tactile-card context-rail-card">
-          <span className="subcard-kicker">GenAI Injected Context</span>
-          <h3 className="panel-title">Telemetry Snapshot</h3>
-          <p className="panel-sub">Exact physical parameters piped to Gemini 2.5 Flash</p>
+          <span className="subcard-kicker">Live Context</span>
+          <h3 className="panel-title">Current Air Snapshot</h3>
+          <p className="panel-sub">Live readings shared with Gemini 2.5 Flash</p>
 
           <div className="snapshot-data-table">
             <div className="snapshot-row">
@@ -402,13 +402,13 @@ export default function AdvisorView({
 
               {/* Direct Answer */}
               <div className="action-content-unit">
-                <span className="unit-label">Direct Directive</span>
+                <span className="unit-label">Direct Answer</span>
                 <p className="unit-text">{activeAdvice.directAnswer}</p>
               </div>
 
               {/* Why It Matters */}
               <div className="action-content-unit">
-                <span className="unit-label">Telemetry Grounding</span>
+                <span className="unit-label">Based on Today&apos;s Air</span>
                 <p className="unit-text muted-text">{activeAdvice.whyItMatters}</p>
               </div>
 

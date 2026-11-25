@@ -63,17 +63,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: { apiVersion: 'v1beta' }
+    });
 
     const systemPrompt = `You are AirSense AI, an authoritative Urban Air Quality Decision Assistant for Indian cities.
-You synthesize live sensor telemetry, Central Pollution Control Board (CPCB) standards, and WHO health guidelines into actionable household decisions.
+You synthesize live air quality readings, Central Pollution Control Board (CPCB) standards, and WHO health guidelines into actionable household decisions.
 
 Strict Operational Guidelines:
 1. Warm, Everyday Language: Explain risks and actions in simple, friendly, empathetic everyday terms. Never use clinical jargon such as "bronchospasm", "vascular inflammation", "minute ventilation", or "particle deposition".
-2. Grounding: Never fabricate, alter, or hallucinate the telemetry. Use the exact values provided (City: ${city}, Indian CPCB AQI: ${cpcbAqi}, US AQI: ${usAqi}, Category: ${category}, Dominant Pollutant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³, Cleanest Window: ${bestWindow}, Planned Outing Duration: ${durationMinutes} minutes).
-3. Simulation Mode: ${isSimulated ? 'NOTE: The user is evaluating an active SIMULATED WINTER SMOG event (Severe temperature inversion). Explicitly mention this synthetic test condition in your response.' : 'This is live real-time ambient telemetry.'}
+2. Grounding: Never fabricate, alter, or hallucinate the readings. Use the exact values provided (City: ${city}, Indian CPCB AQI: ${cpcbAqi}, US AQI: ${usAqi}, Category: ${category}, Dominant Pollutant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³, Cleanest Window: ${bestWindow}, Planned Outing Duration: ${durationMinutes} minutes).
+3. Simulation Mode: ${isSimulated ? 'NOTE: The user is evaluating an active SIMULATED WINTER SMOG event (Severe winter smog). Explicitly mention this test condition in your response.' : 'This is live real-time air quality data.'}
 4. Medical Ethics: Do NOT provide formal medical diagnoses or prescriptions. Provide preventive environmental health guidance.
-5. Indian Urban Context: Provide practical advice for Indian urban households (e.g. wet mopping vs dry brooming, kitchen exhaust during tadka/frying, sealing doors during morning thermal inversion 8-11 AM, N95 masks, metro/carpool shifts).
+5. Indian Urban Context: Provide practical advice for Indian urban households (e.g. wet mopping vs dry brooming, kitchen exhaust during tadka/frying, sealing doors during morning rush hours 8-11 AM, N95 masks, metro/carpool shifts).
 6. Output: Return structured JSON matching the provided schema.`;
 
     const userPrompt = `Household Context:
@@ -81,7 +84,7 @@ Strict Operational Guidelines:
 - Active Profiles: ${Array.isArray(selectedProfiles) ? selectedProfiles.join(', ') : selectedProfiles}
 - Planned Activity: ${selectedActivity}
 - Planned Duration: ${durationMinutes} minutes
-- Telemetry: Indian CPCB AQI ${cpcbAqi} (${category}), Dominant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³
+- Live Readings: Indian CPCB AQI ${cpcbAqi} (${category}), Dominant: ${dominantPollutant}, PM2.5: ${pm25} µg/m³, PM10: ${pm10} µg/m³
 - Cleanest 2-Hour Outdoor Window Today: ${bestWindow}
 ${isSimulated ? '- Simulation Flag: ACTIVE WINTER SMOG SIMULATION' : ''}
 
@@ -92,12 +95,11 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: userPrompt,
+      contents: `${systemPrompt}\n\n${userPrompt}`,
       config: {
-        systemInstruction: systemPrompt,
         temperature: 0.3,
         responseMimeType: 'application/json',
-        responseJsonSchema: {
+        responseSchema: {
           type: Type.OBJECT,
           properties: {
             verdictBadge: {

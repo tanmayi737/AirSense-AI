@@ -173,9 +173,9 @@ export default function HouseholdView({
       {/* LEFT PANEL: Personas, Activity & Duration Slider */}
       <div className="household-left-panel">
         <div className="tactile-card personas-card">
-          <span className="subcard-kicker">1. Family Vulnerability Profiles</span>
-          <h3 className="panel-title">Active Household Personas</h3>
-          <p className="panel-sub">Select members to tailor real-time family risk guidance</p>
+          <span className="subcard-kicker">1. Family Profiles</span>
+          <h3 className="panel-title">Who is in your household?</h3>
+          <p className="panel-sub">Select family members to tailor daily air quality advice</p>
 
           <div className="persona-pills-stack">
             {FAMILY_PERSONAS.map((p) => {

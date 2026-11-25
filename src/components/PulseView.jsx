@@ -1,20 +1,163 @@
 import React, { useState } from 'react';
-import {
-  MapPin,
-  Clock,
-  Sparkles,
-  ShieldCheck,
-  AlertTriangle,
-  AlertOctagon,
-  TrendingDown,
-  Info,
-  Layers,
-  Wind,
-  RotateCcw,
-  Copy,
-  Check
-} from 'lucide-react';
+import { Copy, Check, RotateCcw } from 'lucide-react';
 import { getFamilyBriefing } from '../utils/decisionEngine';
+
+const CPCB_BENCHMARK_BANDS = [
+  {
+    id: 'good',
+    range: '0–50',
+    min: 0,
+    max: 50,
+    label: 'Good',
+    statusWord: 'NORMAL',
+    desc: 'Normal · Clean air',
+    bg: '#EAF4EE',
+    border: '#1F5132',
+    pillBg: '#D4EAE0',
+    pillText: '#1F5132'
+  },
+  {
+    id: 'satisfactory',
+    range: '51–100',
+    min: 51,
+    max: 100,
+    label: 'Satisfactory',
+    statusWord: 'NORMAL',
+    desc: 'Normal · Minor sensitivity',
+    bg: '#F4F7E8',
+    border: '#4D7C0F',
+    pillBg: '#E6EECC',
+    pillText: '#3F6212'
+  },
+  {
+    id: 'moderate',
+    range: '101–200',
+    min: 101,
+    max: 200,
+    label: 'Moderate',
+    statusWord: 'ELEVATED',
+    desc: 'Elevated · Caution for kids/asthma',
+    bg: '#FAF4E4',
+    border: '#B45309',
+    pillBg: '#FDE68A',
+    pillText: '#92400E'
+  },
+  {
+    id: 'poor',
+    range: '201–300',
+    min: 201,
+    max: 300,
+    label: 'Poor',
+    statusWord: 'ABNORMAL',
+    desc: 'Abnormal · Limit outdoor exertion',
+    bg: '#FAF0E6',
+    border: '#C2410C',
+    pillBg: '#FED7AA',
+    pillText: '#9A3412'
+  },
+  {
+    id: 'very-poor',
+    range: '301–400',
+    min: 301,
+    max: 400,
+    label: 'Very Poor',
+    statusWord: 'ABNORMAL',
+    desc: 'Abnormal · Avoid outdoors',
+    bg: '#F9ECEC',
+    border: '#DC2626',
+    pillBg: '#FECACA',
+    pillText: '#991B1B'
+  },
+  {
+    id: 'severe',
+    range: '401–500',
+    min: 401,
+    max: 500,
+    label: 'Severe',
+    statusWord: 'HAZARDOUS',
+    desc: 'Hazardous · Stay indoors, N95',
+    bg: '#F5ECF2',
+    border: '#991B1B',
+    pillBg: '#F5D0FE',
+    pillText: '#701A75'
+  }
+];
+
+function getHeroNarrative(cpcbAqi) {
+  if (cpcbAqi <= 50) {
+    return {
+      headline: 'Good air, good to go.',
+      note: 'A comfortable day for your city. Keep an eye on sensitive family members.'
+    };
+  }
+  if (cpcbAqi <= 100) {
+    return {
+      headline: 'Fair air, mostly fine.',
+      note: 'Acceptable air for most plans. Sensitive elders or kids should pace long outings.'
+    };
+  }
+  if (cpcbAqi <= 200) {
+    return {
+      headline: 'Moderate air, pace yourself.',
+      note: 'Pollution is noticeable today. Shift longer outdoor play to the cleanest window.'
+    };
+  }
+  if (cpcbAqi <= 300) {
+    return {
+      headline: 'Poor air, limit time out.',
+      note: 'Unhealthy air outside. Keep windows closed and wear an N95 mask for travel.'
+    };
+  }
+  return {
+    headline: 'Heavy smog, stay indoors.',
+    note: 'Hazardous air levels. Avoid outdoor exercise and run indoor air purifiers.'
+  };
+}
+
+function getTierColors(cpcbAqi) {
+  if (cpcbAqi <= 50) {
+    return {
+      ring: '#1F5132',
+      track: '#E7F2EB',
+      badgeBg: '#1F5132',
+      badgeText: '#FFFFFF'
+    };
+  }
+  if (cpcbAqi <= 100) {
+    return {
+      ring: '#4D7C0F',
+      track: '#ECFCCB',
+      badgeBg: '#4D7C0F',
+      badgeText: '#FFFFFF'
+    };
+  }
+  if (cpcbAqi <= 200) {
+    return {
+      ring: '#B45309',
+      track: '#FEF3C7',
+      badgeBg: '#B45309',
+      badgeText: '#FFFFFF'
+    };
+  }
+  return {
+    ring: '#DC2626',
+    track: '#FEE2E2',
+    badgeBg: '#DC2626',
+    badgeText: '#FFFFFF'
+  };
+}
+
+function formatUpdatedTime(isoTime) {
+  const d = isoTime ? new Date(isoTime) : new Date();
+  const validDate = isNaN(d.getTime()) ? new Date() : d;
+  return new Intl.DateTimeFormat('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+    .format(validDate)
+    .toLowerCase();
+}
 
 export default function PulseView({
   telemetry,
@@ -31,50 +174,44 @@ export default function PulseView({
     return (
       <div className="view-loading-panel">
         <div className="tactile-card" style={{ padding: '2rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Calibrating atmospheric sensors...</p>
+          <p style={{ color: 'var(--text-muted)' }}>Loading live air quality readings...</p>
         </div>
       </div>
     );
   }
 
-  const { current, current_units } = telemetry;
-  const cpcbAqi = cpcbData?.cpcbAqi || Math.round(current.us_aqi || 0);
+  const { current } = telemetry;
+  const cpcbAqi = cpcbData?.cpcbAqi ?? Math.round(current.us_aqi || 0);
   const usAqi = Math.round(current.us_aqi || 0);
-  const category = cpcbData?.category || 'Moderate';
+  const category = cpcbData?.category || 'Good';
   const dominantPollutant = cpcbData?.dominantPollutant || 'PM2.5';
-  const pm25 = current.pm2_5 != null ? current.pm2_5.toFixed(1) : '--';
-  const pm10 = current.pm10 != null ? current.pm10.toFixed(1) : '--';
-  const no2 = current.nitrogen_dioxide != null ? current.nitrogen_dioxide.toFixed(1) : '--';
-  const o3 = current.ozone != null ? current.ozone.toFixed(1) : '--';
 
-  // Dynamic Atmospheric Tint Color
-  // Good/Satisfactory: Soft Botanical Sage Mist
-  // Moderate: Warm Parchment Ochre
-  // Poor/Very Poor/Severe: Fired Terracotta Clay Mist
-  let tintStyle = {
-    radial: 'radial-gradient(circle at center, rgba(45, 90, 39, 0.08) 0%, rgba(240, 238, 233, 0) 70%)',
-    badgeColor: 'var(--color-moss)',
-    badgeBg: 'rgba(45, 90, 39, 0.1)',
-    badgeBorder: 'rgba(45, 90, 39, 0.25)'
-  };
+  const pm25Num = current.pm2_5 != null ? Number(current.pm2_5) : null;
+  const pm10Num = current.pm10 != null ? Number(current.pm10) : null;
+  const no2Num = current.nitrogen_dioxide != null ? Number(current.nitrogen_dioxide) : null;
+  const o3Num = current.ozone != null ? Number(current.ozone) : null;
 
-  if (cpcbAqi > 250) {
-    tintStyle = {
-      radial: 'radial-gradient(circle at center, rgba(200, 75, 49, 0.14) 0%, rgba(240, 238, 233, 0) 70%)',
-      badgeColor: 'var(--color-terracotta)',
-      badgeBg: 'rgba(200, 75, 49, 0.12)',
-      badgeBorder: 'rgba(200, 75, 49, 0.3)'
-    };
-  } else if (cpcbAqi > 100) {
-    tintStyle = {
-      radial: 'radial-gradient(circle at center, rgba(217, 119, 6, 0.1) 0%, rgba(240, 238, 233, 0) 70%)',
-      badgeColor: '#B45309',
-      badgeBg: 'rgba(217, 119, 6, 0.1)',
-      badgeBorder: 'rgba(217, 119, 6, 0.25)'
-    };
-  }
+  const pm25 = pm25Num != null ? pm25Num.toFixed(1) : '--';
+  const pm10 = pm10Num != null ? pm10Num.toFixed(1) : '--';
+  const no2 = no2Num != null ? no2Num.toFixed(1) : '--';
+  const o3 = o3Num != null ? o3Num.toFixed(1) : '--';
 
-  // 10-Second Family Briefing Sentence with Secondary Gas Spike Awareness
+  const cigEquiv = pm25Num != null ? (pm25Num / 22).toFixed(1) : '0.0';
+  const heroNarrative = getHeroNarrative(cpcbAqi);
+  const tierColors = getTierColors(cpcbAqi);
+
+  // Active benchmark band
+  const activeBand =
+    CPCB_BENCHMARK_BANDS.find((b) => cpcbAqi >= b.min && cpcbAqi <= b.max) ||
+    CPCB_BENCHMARK_BANDS[CPCB_BENCHMARK_BANDS.length - 1];
+
+  // SVG Ring Gauge math (164x164 viewBox, r=70)
+  const ringRadius = 70;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringFillRatio = Math.min(1, Math.max(0.18, cpcbAqi / 300));
+  const ringDashOffset = ringCircumference * (1 - ringFillRatio);
+
+  // 10-Second Family Verdict
   const familyBriefing = getFamilyBriefing({
     cpcbAqi,
     cityName: currentCity.name,
@@ -87,9 +224,9 @@ export default function PulseView({
   });
 
   const handleCopyBriefing = async () => {
-    const cleanest = cleanWindow?.displayWindow || '11:00 AM – 1:00 PM';
+    const cleanest = cleanWindow?.displayWindow || '10 pm – 11 pm';
     const summaryText = [
-      `🌿 AirSense AI — Daily Air Briefing for ${currentCity.name}`,
+      `AirSense AI — Daily Air Briefing for ${currentCity.name}`,
       `• CPCB AQI: ${cpcbAqi} (${category}) | Dominant: ${dominantPollutant}`,
       `• Cleanest Outdoor Window: ${cleanest}`,
       `• Family Verdict: ${familyBriefing}`
@@ -113,126 +250,142 @@ export default function PulseView({
     }
   };
 
-  // Scrubbable Ribbon & Time-Travel Data
+  // Pollutants strip data
+  const pollutants = [
+    { key: 'PM2.5', val: pm25, num: pm25Num || 0, limit: 15 },
+    { key: 'PM10', val: pm10, num: pm10Num || 0, limit: 45 },
+    { key: 'NO2', val: no2, num: no2Num || 0, limit: 25 },
+    { key: 'O3', val: o3, num: o3Num || 0, limit: 100 }
+  ];
+
+  // Clean-Window Ribbon data
   const hourlyPoints = cleanWindow?.hourlyPoints || [];
   const maxPm = Math.max(...hourlyPoints.map((p) => p.pm2_5), 45);
+  const yTicks = [Math.round(maxPm), Math.round((maxPm * 2) / 3), Math.round(maxPm / 3), 0];
   const currentHourIndex = new Date().getHours();
   const currentHourPoint = hourlyPoints[currentHourIndex] || hourlyPoints[0];
   const activePoint = hoveredPoint || selectedPoint || currentHourPoint;
   const isTimeTraveling = Boolean(
     (selectedPoint && selectedPoint.index !== currentHourPoint?.index) ||
-    (hoveredPoint && hoveredPoint.index !== currentHourPoint?.index)
+      (hoveredPoint && hoveredPoint.index !== currentHourPoint?.index)
   );
 
   const getPointCategory = (pm) => {
-    if (pm <= 30) return { label: 'Good', color: '#10B981' };
-    if (pm <= 60) return { label: 'Satisfactory', color: '#84CC16' };
-    if (pm <= 90) return { label: 'Moderate', color: '#F59E0B' };
-    if (pm <= 120) return { label: 'Poor', color: '#F97316' };
-    if (pm <= 250) return { label: 'Very Poor', color: '#EF4444' };
-    return { label: 'Severe', color: '#991B1B' };
+    if (pm <= 30) return { label: 'GOOD', bg: '#E7F2EB', color: '#1F5132' };
+    if (pm <= 60) return { label: 'SATISFACTORY', bg: '#ECFCCB', color: '#3F6212' };
+    if (pm <= 90) return { label: 'MODERATE', bg: '#FEF3C7', color: '#92400E' };
+    if (pm <= 120) return { label: 'POOR', bg: '#FED7AA', color: '#9A3412' };
+    return { label: 'SEVERE', bg: '#FEE2E2', color: '#991B1B' };
   };
 
   const activeCategory = activePoint ? getPointCategory(activePoint.pm2_5) : null;
+  const updatedTimeStr = formatUpdatedTime(current.time);
+  const fullLocation = [currentCity.name, currentCity.admin1, currentCity.country]
+    .filter(Boolean)
+    .join(', ');
 
   return (
-    <div className="tab-view-container pulse-view-layout">
-      {/* LEFT PANEL (60%): Concentric Dial & Criteria Pollutants */}
-      <div className="pulse-left-panel">
-        <div className="tactile-card dial-hero-card" style={{ background: tintStyle.radial, backgroundColor: 'var(--surface-card)' }}>
-          {/* Top City & State Meta Bar */}
-          <div className="dial-header-meta">
-            <div className="city-label-group">
-              <span className="location-pin-icon" aria-hidden="true">
-                <MapPin size={16} />
+    <div className="pulse-page-wrapper">
+      {/* Page Title Row */}
+      <div className="pulse-title-row">
+        <div>
+          <h1 className="pulse-page-h1">Your city. Your next breath.</h1>
+          <p className="pulse-page-subtitle">A clear picture of the air around your family.</p>
+        </div>
+        <div className="pulse-title-meta">
+          <span className="pulse-eyebrow-city tabular-nums">
+            PULSE / {currentCity.name.toUpperCase()}
+          </span>
+          <span className="pulse-updated-time tabular-nums">
+            Updated {updatedTimeStr} · IST
+          </span>
+        </div>
+      </div>
+
+      {/* 3-Column Bento Grid (~42% / 25% / 33%) */}
+      <div className="pulse-bento-grid">
+        {/* COLUMN 1 (~42%): Hero AQI Card + 10-Second Family Verdict + 4 Pollutant Mini-Cards */}
+        <div className="pulse-col-1">
+          {/* Hero Card */}
+          <div className="tactile-card pulse-hero-card">
+            <div className="pulse-hero-top">
+              <div>
+                <h2 className="pulse-hero-city">{fullLocation}</h2>
+                <span className="pulse-hero-kicker">CITY AIR QUALITY</span>
+              </div>
+              <span className="pulse-dominant-pill">
+                DOMINANT: {dominantPollutant}
               </span>
-              <h2 className="current-city-heading">
-                {currentCity.name}
-                <span className="city-admin-sub">
-                  {[currentCity.admin1, currentCity.country].filter(Boolean).join(', ')}
-                </span>
-              </h2>
             </div>
 
-            <div className="dominant-pill-badge" title="Criteria pollutant driving the CPCB AQI">
-              <Layers size={12} />
-              <span>Dominant: {dominantPollutant}</span>
-            </div>
-          </div>
-
-          {/* Concentric Dual-AQI Dial */}
-          <div className="concentric-dial-stage">
-            {isTimeTraveling && (
-              <div className="time-travel-dial-pill" role="status">
-                <Clock size={11} />
-                <span>Previewing {activePoint.hourLabel} • {activePoint.pm2_5} µg/m³ ({activeCategory?.label})</span>
-              </div>
-            )}
-            <div className="concentric-dial-outer" style={{ borderColor: tintStyle.badgeBorder }}>
-              <div className="concentric-dial-inner">
-                {/* Primary Indian CPCB AQI */}
-                <div className="dial-primary-readout">
-                  <span className="dial-number tabular-nums" style={{ color: tintStyle.badgeColor }}>
-                    {cpcbAqi}
+            <div className="pulse-hero-body">
+              {/* Circular Ring Gauge */}
+              <div className="pulse-ring-wrap">
+                <svg viewBox="0 0 164 164" className="pulse-ring-svg" aria-hidden="true">
+                  <circle
+                    cx="82"
+                    cy="82"
+                    r={ringRadius}
+                    fill="none"
+                    stroke={tierColors.track}
+                    strokeWidth="12"
+                  />
+                  <circle
+                    cx="82"
+                    cy="82"
+                    r={ringRadius}
+                    fill="none"
+                    stroke={tierColors.ring}
+                    strokeWidth="12"
+                    strokeLinecap="round"
+                    strokeDasharray={ringCircumference}
+                    strokeDashoffset={ringDashOffset}
+                    transform="rotate(-90 82 82)"
+                  />
+                </svg>
+                <div className="pulse-ring-center">
+                  <span className="pulse-ring-score tabular-nums">{cpcbAqi}</span>
+                  <span className="pulse-ring-label">CPCB AQI</span>
+                  <span
+                    className="pulse-ring-badge"
+                    style={{
+                      backgroundColor: tierColors.badgeBg,
+                      color: tierColors.badgeText
+                    }}
+                  >
+                    {category.toUpperCase()}
                   </span>
-                  <span className="dial-metric-label">CPCB AQI</span>
                 </div>
+              </div>
 
-                {/* Status Badge */}
-                <div
-                  className="dial-category-badge"
-                  style={{
-                    color: tintStyle.badgeColor,
-                    backgroundColor: tintStyle.badgeBg,
-                    borderColor: tintStyle.badgeBorder
-                  }}
-                >
-                  {cpcbAqi > 250 ? (
-                    <AlertOctagon size={13} />
-                  ) : cpcbAqi > 100 ? (
-                    <AlertTriangle size={13} />
-                  ) : (
-                    <ShieldCheck size={13} />
-                  )}
-                  <span>{category}</span>
+              {/* Hero Right Narrative */}
+              <div className="pulse-hero-narrative">
+                <h3 className="pulse-hero-headline">{heroNarrative.headline}</h3>
+                <p className="pulse-hero-note">{heroNarrative.note}</p>
+                <div className="pulse-hero-epa tabular-nums">
+                  US EPA: <strong>{usAqi}</strong>
                 </div>
-
-                {/* Secondary US AQI Comparison Pill */}
-                <div className="dial-secondary-pill">
-                  <span className="sec-us-label">US EPA:</span>
-                  <strong className="tabular-nums">{usAqi}</strong>
+                <div className="pulse-cig-pill tabular-nums">
+                  {cigEquiv} cigarettes/day equiv.
                 </div>
               </div>
             </div>
-
-            {/* 24h PM2.5 Cigarette Equivalent Pill below the AQI Dial */}
-            {current.pm2_5 != null && (
-              <div
-                className="dial-cigarette-pill"
-                title={`≈ ${(current.pm2_5 / 22).toFixed(1)} cigarettes/day based on WHO 24h PM2.5 exposure equivalence (22 µg/m³ ≈ 1 cigarette/day)`}
-              >
-                <span aria-hidden="true">🚬</span>
-                <span className="tabular-nums">{(current.pm2_5 / 22).toFixed(1)}</span>
-                <span className="cig-label">cigarettes/day equiv.</span>
-              </div>
-            )}
           </div>
 
-          {/* 10-Second Family Briefing Banner */}
-          <div className="family-briefing-callout">
-            <div className="briefing-header-row">
-              <span className="briefing-tag">10-Second Family Verdict</span>
+          {/* Middle Card: 10-Second Family Verdict */}
+          <div className="pulse-verdict-card">
+            <div className="pulse-verdict-header">
+              <span className="pulse-verdict-kicker">10-SECOND FAMILY VERDICT</span>
               <button
                 type="button"
-                className={`copy-briefing-btn ${copied ? 'is-copied' : ''}`}
+                className={`pulse-copy-btn ${copied ? 'is-copied' : ''}`}
                 onClick={handleCopyBriefing}
-                title="Copy shareable daily family air briefing to clipboard"
-                aria-label="Copy Daily Family Briefing"
+                title="Copy daily family air briefing"
               >
                 {copied ? (
                   <>
                     <Check size={12} />
-                    <span>Copied ✓</span>
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
@@ -242,253 +395,258 @@ export default function PulseView({
                 )}
               </button>
             </div>
-            <p className="briefing-sentence">{familyBriefing}</p>
+            <p className="pulse-verdict-text">{familyBriefing}</p>
           </div>
 
-          {/* 4-Criteria Pollutant Hardware Strip */}
-          <div className="criteria-pollutants-strip">
-            {/* PM2.5 */}
-            <div className="criteria-item">
-              <div className="crit-item-top">
-                <span className="crit-label">PM2.5</span>
-                <span className="crit-who">WHO ≤ 15</span>
-              </div>
-              <div className="crit-val-row">
-                <span className="crit-val tabular-nums">{pm25}</span>
-                <span className="crit-unit">µg/m³</span>
-              </div>
-              <div className="crit-progress-track" title={`${pm25} / 15 µg/m³ WHO limit`}>
-                <div
-                  className="crit-progress-bar"
-                  style={{
-                    width: `${Math.min(100, Math.max(4, ((Number(current.pm2_5) || 0) / 15) * 100))}%`,
-                    backgroundColor: (Number(current.pm2_5) || 0) <= 15 ? 'var(--color-moss)' : 'var(--color-terracotta)'
-                  }}
-                />
-              </div>
-              <p className="crit-explainer">
-                Invisible smoke & exhaust dust (30× thinner than a hair) — WHO 24h safe limit is 15 µg/m³.
-              </p>
-            </div>
-
-            {/* PM10 */}
-            <div className="criteria-item">
-              <div className="crit-item-top">
-                <span className="crit-label">PM10</span>
-                <span className="crit-who">WHO ≤ 45</span>
-              </div>
-              <div className="crit-val-row">
-                <span className="crit-val tabular-nums">{pm10}</span>
-                <span className="crit-unit">µg/m³</span>
-              </div>
-              <div className="crit-progress-track" title={`${pm10} / 45 µg/m³ WHO limit`}>
-                <div
-                  className="crit-progress-bar"
-                  style={{
-                    width: `${Math.min(100, Math.max(4, ((Number(current.pm10) || 0) / 45) * 100))}%`,
-                    backgroundColor: (Number(current.pm10) || 0) <= 45 ? 'var(--color-moss)' : 'var(--color-terracotta)'
-                  }}
-                />
-              </div>
-              <p className="crit-explainer">
-                Coarse road & construction dust (irritates eyes & throat) — WHO 24h safe limit is 45 µg/m³.
-              </p>
-            </div>
-
-            {/* NO2 */}
-            <div className="criteria-item">
-              <div className="crit-item-top">
-                <span className="crit-label">NO₂</span>
-                <span className="crit-who">WHO ≤ 25</span>
-              </div>
-              <div className="crit-val-row">
-                <span className="crit-val tabular-nums">{no2}</span>
-                <span className="crit-unit">µg/m³</span>
-              </div>
-              <div className="crit-progress-track" title={`${no2} / 25 µg/m³ WHO limit`}>
-                <div
-                  className="crit-progress-bar"
-                  style={{
-                    width: `${Math.min(100, Math.max(4, ((Number(current.nitrogen_dioxide) || 0) / 25) * 100))}%`,
-                    backgroundColor: (Number(current.nitrogen_dioxide) || 0) <= 25 ? 'var(--color-moss)' : 'var(--color-terracotta)'
-                  }}
-                />
-              </div>
-              <p className="crit-explainer">
-                Pungent vehicle exhaust gas — WHO 24h safe limit is 25 µg/m³.
-              </p>
-            </div>
-
-            {/* O3 */}
-            <div className="criteria-item">
-              <div className="crit-item-top">
-                <span className="crit-label">O₃</span>
-                <span className="crit-who">WHO ≤ 100</span>
-              </div>
-              <div className="crit-val-row">
-                <span className="crit-val tabular-nums">{o3}</span>
-                <span className="crit-unit">µg/m³</span>
-              </div>
-              <div className="crit-progress-track" title={`${o3} / 100 µg/m³ WHO limit`}>
-                <div
-                  className="crit-progress-bar"
-                  style={{
-                    width: `${Math.min(100, Math.max(4, ((Number(current.ozone) || 0) / 100) * 100))}%`,
-                    backgroundColor: (Number(current.ozone) || 0) <= 100 ? 'var(--color-moss)' : 'var(--color-terracotta)'
-                  }}
-                />
-              </div>
-              <p className="crit-explainer">
-                Ground-level smog formed when sunlight hits fumes — WHO safe limit is 100 µg/m³.
-              </p>
-            </div>
+          {/* Bottom 4 Pollutant Mini-Cards */}
+          <div className="pulse-pollutants-grid">
+            {pollutants.map((item) => {
+              const isOver = item.num > item.limit;
+              const pct = Math.min(100, Math.max(6, (item.num / item.limit) * 100));
+              return (
+                <div key={item.key} className="tactile-card pulse-mini-card">
+                  <span className="mini-card-name">{item.key}</span>
+                  <span className="mini-card-val tabular-nums">{item.val}</span>
+                  <span className="mini-card-unit">µg/m³</span>
+                  <div className="mini-card-track" title={`${item.val} / ${item.limit} µg/m³ WHO limit`}>
+                    <div
+                      className="mini-card-fill"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: isOver ? '#DC2626' : '#1F5132'
+                      }}
+                    />
+                  </div>
+                  <span className="mini-card-who tabular-nums">WHO ≤ {item.limit}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* RIGHT PANEL (40%): 24-Hour Clean-Window Scrubbable Ribbon */}
-      <div className="pulse-right-panel">
-        <div className="tactile-card ribbon-card">
-          <div className="ribbon-card-header">
-            <div>
-              <span className="subcard-kicker">24-Hour Atmospheric Trajectory</span>
-              <h3 className="ribbon-title">Clean-Window Ribbon</h3>
-            </div>
-
-            <div className="ribbon-header-actions">
-              {/* Quick Reset to Current Hour Button */}
-              {isTimeTraveling && (
-                <button
-                  type="button"
-                  className="reset-hour-btn"
-                  onClick={() => {
-                    setSelectedPoint(null);
-                    setHoveredPoint(null);
+        {/* COLUMN 2 (~25%): AQI Benchmark Scale */}
+        <div className="pulse-col-2">
+          <div className="tactile-card pulse-benchmark-card">
+            <div className="benchmark-header">
+              <span className="benchmark-eyebrow">AQI BENCHMARK SCALE</span>
+              <h3 className="benchmark-title">Normal vs. Abnormal</h3>
+              <div className="benchmark-subrow">
+                <span
+                  className="benchmark-live-pill tabular-nums"
+                  style={{
+                    backgroundColor: activeBand.pillBg,
+                    color: activeBand.pillText
                   }}
-                  title="Reset preview back to current hour"
-                  aria-label="Reset to Current Hour"
                 >
-                  <RotateCcw size={11} />
-                  <span>Reset to Current</span>
-                </button>
-              )}
-
-              {/* Best Window Pill */}
-              {cleanWindow?.hasData && (
-                <div className="ribbon-best-window-pill">
-                  <Sparkles size={13} style={{ color: 'var(--color-moss)' }} />
-                  <span>Cleanest: {cleanWindow.displayWindow}</span>
-                </div>
-              )}
-
-              {/* WHO Target Legend Badge */}
-              <div className="ribbon-who-legend-badge" title="WHO 24h PM2.5 Guideline: 15 µg/m³">
-                <span className="who-legend-dash" aria-hidden="true" />
-                <span>WHO Target 15 µg/m³</span>
+                  {cpcbAqi} = {activeBand.statusWord}
+                </span>
+                <span className="benchmark-index-lbl">CPCB INDEX</span>
               </div>
             </div>
-          </div>
 
-          {/* Scrubbing Micro-Readout */}
-          <div className={`scrub-micro-readout ${isTimeTraveling ? 'is-scrubbed-active' : ''}`}>
-            {activePoint ? (
-              <div className="micro-readout-content">
-                <div className="micro-time-group">
-                  <Clock size={13} style={{ color: 'var(--text-muted)' }} />
-                  <span className="micro-time-val">{activePoint.hourLabel}</span>
-                  {activePoint.index === currentHourPoint?.index ? (
-                    <span className="micro-curr-tag">Current Hour</span>
-                  ) : (
-                    <span className="micro-preview-tag">Time-Travel Preview</span>
-                  )}
-                  {activeCategory && (
-                    <span
-                      className="micro-category-pill"
-                      style={{
-                        color: activeCategory.color,
-                        borderColor: `${activeCategory.color}50`,
-                        backgroundColor: `${activeCategory.color}15`
-                      }}
-                    >
-                      {activeCategory.label}
-                    </span>
-                  )}
-                </div>
-                <div className="micro-stat-group">
-                  <span className="micro-pm-val tabular-nums">
-                    {activePoint.pm2_5} <small>µg/m³</small>
-                  </span>
-                  {activePoint.isBestWindow && (
-                    <span className="micro-best-tag">Optimal Window ({cleanWindow?.cleanerPercent}% cleaner)</span>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <span className="micro-placeholder">Hover or tap across the ribbon to scrub hourly levels</span>
-            )}
-          </div>
-
-          {/* Scrubbable Waveform Bars */}
-          <div className="scrubbable-waveform-track">
-            {/* Subtle dashed horizontal WHO reference baseline (label moved to top-right legend badge to prevent bar overlap) */}
-            <div
-              className="waveform-who-baseline"
-              style={{ bottom: `${Math.min(90, (15 / maxPm) * 100)}%` }}
-              aria-hidden="true"
-            />
-
-            <div className="waveform-bars-wrap">
-              {hourlyPoints.map((pt) => {
-                const heightPct = Math.min(100, Math.max(10, (pt.pm2_5 / maxPm) * 100));
-                const isSelected = activePoint?.index === pt.index;
-
+            <div className="benchmark-rows-list">
+              {CPCB_BENCHMARK_BANDS.map((band) => {
+                const isActive = band.id === activeBand.id;
                 return (
                   <div
-                    key={pt.index}
-                    className={`waveform-bar-col ${pt.isBestWindow ? 'is-moss-window' : ''} ${
-                      isSelected ? 'is-active-scrub' : ''
-                    }`}
-                    onMouseEnter={() => setHoveredPoint(pt)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                    onClick={() => setSelectedPoint(pt)}
-                    onTouchStart={() => setSelectedPoint(pt)}
-                    title={`${pt.hourLabel}: ${pt.pm2_5} µg/m³`}
+                    key={band.id}
+                    className={`benchmark-row ${isActive ? 'is-active' : ''}`}
+                    style={{
+                      backgroundColor: band.bg,
+                      borderColor: isActive ? band.border : 'transparent'
+                    }}
                   >
-                    <div className="waveform-bar-pillar">
-                      <div
-                        className="waveform-bar-fill"
-                        style={{
-                          height: `${heightPct}%`,
-                          background: pt.isBestWindow
-                            ? 'var(--color-moss)'
-                            : pt.pm2_5 > 120
-                            ? 'var(--color-terracotta)'
-                            : pt.pm2_5 > 60
-                            ? '#D97706'
-                            : '#78716C'
-                        }}
-                      />
+                    <div className="benchmark-row-top">
+                      <div className="benchmark-row-left">
+                        <span className="benchmark-range tabular-nums">{band.range}</span>
+                        <span className="benchmark-name">{band.label}</span>
+                      </div>
+                      {isActive && (
+                        <span
+                          className="benchmark-you-pill tabular-nums"
+                          style={{
+                            backgroundColor: band.pillBg,
+                            color: band.pillText
+                          }}
+                        >
+                          ← YOU ({cpcbAqi})
+                        </span>
+                      )}
                     </div>
-                    <span className="waveform-hour-tick">
-                      {pt.index % 4 === 0 ? pt.hourLabel.replace(':00', '').replace(' ', '') : '•'}
-                    </span>
+                    <span className="benchmark-desc">{band.desc}</span>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* Practical Planning Note */}
-          <div className="ribbon-footer-summary">
-            <Info size={14} style={{ color: 'var(--color-moss)', flexShrink: 0 }} />
-            <p>
-              Scrub across the 24-hour timeline to target outdoor errands during{' '}
-              <strong style={{ color: 'var(--color-moss)' }}>{cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}</strong>.
-              Avoid early morning inversion peaks (7–10 AM) when particulates remain trapped near street level.
-            </p>
+            <div className="benchmark-footer">
+              ≤ 100 is Normal; &gt; 100 is Abnormal.
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 3 (~33%): Clean-Window Ribbon */}
+        <div className="pulse-col-3">
+          <div className="tactile-card pulse-ribbon-card">
+            <div className="ribbon-top-block">
+              <div className="ribbon-title-line">
+                <h3 className="ribbon-card-title">Clean-Window Ribbon</h3>
+                {isTimeTraveling && (
+                  <button
+                    type="button"
+                    className="ribbon-reset-btn"
+                    onClick={() => {
+                      setSelectedPoint(null);
+                      setHoveredPoint(null);
+                    }}
+                  >
+                    <RotateCcw size={11} />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
+              {cleanWindow?.hasData && (
+                <span className="ribbon-cleanest-pill tabular-nums">
+                  Cleanest: {cleanWindow.displayWindow}
+                </span>
+              )}
+            </div>
+
+            <div className="ribbon-scale-meta">
+              <span>PM2.5 / NEXT 24 HOURS</span>
+              <span className="tabular-nums">WHO Target 15 µg/m³</span>
+            </div>
+
+            {/* Highlighted Current / Scrubbed Hour Box */}
+            {activePoint && (
+              <div className="ribbon-hour-highlight">
+                <div className="ribbon-hour-left">
+                  <div className="ribbon-hour-top">
+                    <span className="ribbon-hour-time tabular-nums">
+                      {activePoint.hourLabel.toLowerCase()}
+                    </span>
+                    {activeCategory && (
+                      <span
+                        className="ribbon-hour-badge"
+                        style={{
+                          backgroundColor: activeCategory.bg,
+                          color: activeCategory.color
+                        }}
+                      >
+                        {activeCategory.label}
+                      </span>
+                    )}
+                  </div>
+                  <span className="ribbon-hour-sub">
+                    {activePoint.index === currentHourPoint?.index
+                      ? 'CURRENT HOUR'
+                      : 'SELECTED HOUR'}
+                  </span>
+                </div>
+                <div className="ribbon-hour-right">
+                  <span className="ribbon-hour-val tabular-nums">{activePoint.pm2_5}</span>
+                  <span className="ribbon-hour-unit">µg/m³</span>
+                </div>
+              </div>
+            )}
+
+            {/* 24-Hour Vertical Bar Chart */}
+            <div className="ribbon-chart-area">
+              <div className="ribbon-bars-stage">
+                {/* WHO Target 15 µg/m³ dashed line */}
+                <div
+                  className="ribbon-who-line"
+                  style={{ bottom: `${Math.min(92, (15 / maxPm) * 100)}%` }}
+                  aria-hidden="true"
+                />
+
+                <div className="ribbon-bars-row">
+                  {hourlyPoints.map((pt) => {
+                    const heightPct = Math.min(100, Math.max(8, (pt.pm2_5 / maxPm) * 100));
+                    const isCurrent = pt.index === currentHourPoint?.index;
+                    const isSelected = activePoint?.index === pt.index;
+
+                    return (
+                      <div
+                        key={pt.index}
+                        className={`ribbon-bar-slot ${pt.isBestWindow ? 'is-cleanest' : ''} ${
+                          isSelected ? 'is-selected' : ''
+                        }`}
+                        onMouseEnter={() => setHoveredPoint(pt)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                        onClick={() => setSelectedPoint(pt)}
+                        onTouchStart={() => setSelectedPoint(pt)}
+                        title={`${pt.hourLabel}: ${pt.pm2_5} µg/m³`}
+                      >
+                        <div className="ribbon-bar-pillar">
+                          <div
+                            className="ribbon-bar-fill"
+                            style={{
+                              height: `${heightPct}%`,
+                              backgroundColor: pt.isBestWindow
+                                ? '#1F5132'
+                                : isSelected || isCurrent
+                                ? '#5C6B61'
+                                : '#C3CCC6'
+                            }}
+                          />
+                        </div>
+                        {isCurrent && <span className="ribbon-current-dot" aria-hidden="true" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Y-Axis Ticks */}
+              <div className="ribbon-y-axis tabular-nums" aria-hidden="true">
+                {yTicks.map((t, idx) => (
+                  <span key={idx}>{t}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* X-Axis Labels */}
+            <div className="ribbon-x-axis tabular-nums">
+              <span>12am</span>
+              <span>6am</span>
+              <span>12pm</span>
+              <span>6pm</span>
+              <span>11pm</span>
+            </div>
+
+            {/* Chart Legend */}
+            <div className="ribbon-legend-row">
+              <span className="ribbon-legend-item">
+                <span className="legend-dot-grey" />
+                <span>Hourly PM2.5</span>
+              </span>
+              <span className="ribbon-legend-item">
+                <span className="legend-sq-green" />
+                <span>Cleanest window</span>
+              </span>
+            </div>
+
+            {/* Bottom Tip Box */}
+            <div className="ribbon-tip-box">
+              <span className="ribbon-tip-kicker">A LITTLE LATER, A LITTLE CLEANER</span>
+              <p className="ribbon-tip-text">
+                Plan a gentle walk or air out your home at{' '}
+                <strong className="tabular-nums">
+                  {cleanWindow?.displayWindow || '10–11 pm'}
+                </strong>
+                .
+              </p>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Bottom Footer Bar */}
+      <footer className="pulse-bottom-footer">
+        <span>SOURCE: CPCB / Hourly estimates · All pollutant values in µg/m³</span>
+        <span>Air awareness, not medical advice. · AirSense AI</span>
+      </footer>
     </div>
   );
 }

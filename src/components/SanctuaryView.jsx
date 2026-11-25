@@ -116,8 +116,8 @@ export default function SanctuaryView({
               ? `Open cross-facing windows briefly (15 min) during the ${windowMeta.label} (${cleanWindow?.displayWindow || '10:00 PM – 12:00 AM'}) when late-night traffic drops and surface dust settles.`
               : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale CO₂.`,
           whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Infiltration of outdoor fine dust elevates indoor particulate levels rapidly.`,
-          saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'reduced late-night traffic allows brief safe cross-ventilation' : 'warm solar convection lifts surface smog'}.`,
-          indoorAction: `Damp microfiber mop daily and run kitchen exhaust chimney on high during cooking.`,
+          saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'lighter late-night traffic allows brief safe cross-ventilation' : 'warm midday sun helps lift surface smog'}.`,
+          indoorAction: `Wipe floors with a damp microfiber mop daily and run the kitchen exhaust on high while cooking.`,
           isFallback: true
         });
       }
@@ -128,10 +128,10 @@ export default function SanctuaryView({
           ? `Keep all external windows sealed in ${cityName}. Run indoor True-HEPA purifiers on medium-high continuously.`
           : windowMeta?.isNight
             ? `Open cross-facing windows briefly (15 min) during the ${windowMeta.label} (${cleanWindow?.displayWindow || '10:00 PM – 12:00 AM'}) when late-night traffic drops and surface dust settles.`
-            : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale CO₂.`,
-        whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Infiltration of outdoor fine dust elevates indoor particulate levels rapidly.`,
-        saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'reduced late-night traffic allows brief safe cross-ventilation' : 'warm solar convection lifts surface smog'}.`,
-        indoorAction: `Damp microfiber mop daily and run kitchen exhaust chimney on high during cooking.`,
+            : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale indoor air.`,
+        whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Outdoor fine dust can quickly build up indoors if windows stay open.`,
+        saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'lighter late-night traffic allows brief safe cross-ventilation' : 'warm midday sun helps lift surface smog'}.`,
+        indoorAction: `Wipe floors with a damp microfiber mop daily and run the kitchen exhaust on high while cooking.`,
         isFallback: true
       });
     } finally {
@@ -146,7 +146,7 @@ export default function SanctuaryView({
         <div className="tactile-card sanctuary-card">
           <div className="sanctuary-header-row">
             <div>
-              <span className="subcard-kicker">Home Microclimate Defense</span>
+              <span className="subcard-kicker">Home Air Protection</span>
               <h3 className="panel-title">Smart Window Ventilation</h3>
             </div>
             <div
@@ -256,8 +256,8 @@ export default function SanctuaryView({
 
           {/* Interactive Checklist */}
           <div className="indoor-checklist-subcard">
-            <span className="subcard-kicker">Interactive Household Mitigation Protocol</span>
-            <h4 className="checklist-heading">Particulate Barrier Checklist</h4>
+            <span className="subcard-kicker">Daily Home Habits</span>
+            <h4 className="checklist-heading">Clean-Air Home Checklist</h4>
 
             <div className="checklist-stack">
               <div

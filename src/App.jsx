@@ -155,67 +155,107 @@ export default function App() {
       {/* Sleek Live Context Pill Bar */}
       <section className="live-context-bar" aria-label="Active Air Quality Context">
         <div className="live-context-container">
-          {/* Active City Pill */}
-          <div className="context-pill context-city-pill" title="Selected geographic location">
-            <MapPin size={12} className="context-icon" />
-            <strong className="context-main-text">{currentCity.name}</strong>
-            {currentCity.admin1 && <span className="context-sub-text">{currentCity.admin1}</span>}
-          </div>
-
-          {/* CPCB AQI Status Badge */}
-          <div
-            className="context-pill context-aqi-pill"
-            style={{
-              borderColor: cpcbData?.color ? `${cpcbData.color}40` : 'var(--border-hairline)'
-            }}
-            title="Official Indian CPCB Air Quality Index"
-          >
-            <span
-              className="context-aqi-dot"
-              style={{ backgroundColor: cpcbData?.color || 'var(--color-moss)' }}
-            />
-            <span className="context-main-text tabular-nums">
-              CPCB AQI {cpcbData?.cpcbAqi ?? '--'}
-            </span>
-            <span
-              className="context-category-tag"
-              style={{ color: cpcbData?.color || 'var(--color-moss)' }}
-            >
-              {cpcbData?.category || 'Moderate'}
-            </span>
-            {isSimulation && <span className="context-sim-tag"><Flame size={10} /> Smog 360</span>}
-          </div>
-
-          {/* Dominant Pollutant */}
-          <div className="context-pill context-dominant-pill" title="Dominant criteria pollutant driving AQI">
-            <Layers size={12} className="context-icon" />
-            <span className="context-sub-text">Dominant:</span>
-            <strong className="context-main-text">{cpcbData?.dominantPollutant || 'PM2.5'}</strong>
-          </div>
-
-          {/* Selected Family Profiles */}
-          <div className="context-pill context-profiles-pill" title="Active family profiles tailoring recommendations">
-            <Users size={12} className="context-icon" />
-            <span className="context-sub-text">Profiles:</span>
-            <span className="context-main-text">{selectedPersonas.join(' • ')}</span>
-          </div>
-
-          {/* Cleanest Window */}
-          {cleanWindowData?.hasData && (
-            <div className="context-pill context-window-pill" title="Cleanest 2-hour outdoor window today">
-              <Sparkles size={12} className="context-icon" style={{ color: 'var(--color-moss)' }} />
-              <span className="context-sub-text">Cleanest:</span>
-              <span className="context-main-text">{cleanWindowData.displayWindow}</span>
+          <div className="live-context-pills-left">
+            {/* Active City Pill */}
+            <div className="context-pill context-city-pill" title="Selected location">
+              <strong className="context-main-text">
+                {currentCity.name}{currentCity.admin1 ? `, ${currentCity.admin1}` : ''}
+              </strong>
             </div>
-          )}
+
+            {/* CPCB AQI Status Badge */}
+            <div
+              className="context-pill context-aqi-pill"
+              style={{
+                backgroundColor:
+                  !cpcbData || cpcbData.cpcbAqi <= 100
+                    ? '#E7F2EB'
+                    : cpcbData.cpcbAqi <= 200
+                    ? '#FEF3C7'
+                    : '#FEE2E2',
+                borderColor:
+                  !cpcbData || cpcbData.cpcbAqi <= 100
+                    ? '#C8DFD0'
+                    : cpcbData.cpcbAqi <= 200
+                    ? '#FCD34D'
+                    : '#FCA5A5'
+              }}
+              title="Official Indian CPCB Air Quality Index"
+            >
+              <span
+                className="context-aqi-dot"
+                style={{
+                  backgroundColor:
+                    !cpcbData || cpcbData.cpcbAqi <= 100
+                      ? '#1F5132'
+                      : cpcbData.cpcbAqi <= 200
+                      ? '#B45309'
+                      : '#DC2626'
+                }}
+              />
+              <span
+                className="context-main-text tabular-nums"
+                style={{
+                  color:
+                    !cpcbData || cpcbData.cpcbAqi <= 100
+                      ? '#1F5132'
+                      : cpcbData.cpcbAqi <= 200
+                      ? '#92400E'
+                      : '#B91C1C'
+                }}
+              >
+                CPCB AQI {cpcbData?.cpcbAqi ?? '--'}
+              </span>
+              <span
+                className="context-category-tag"
+                style={{
+                  color:
+                    !cpcbData || cpcbData.cpcbAqi <= 100
+                      ? '#1F5132'
+                      : cpcbData.cpcbAqi <= 200
+                      ? '#92400E'
+                      : '#B91C1C'
+                }}
+              >
+                {cpcbData?.category || 'Good'}
+              </span>
+              {isSimulation && <span className="context-sim-tag"><Flame size={10} /> Smog 360</span>}
+            </div>
+
+            {/* Dominant Pollutant */}
+            <div className="context-pill context-dominant-pill" title="Main pollutant affecting the air today">
+              <span className="context-sub-text">Dominant:</span>
+              <strong className="context-main-text">{cpcbData?.dominantPollutant || 'PM2.5'}</strong>
+            </div>
+
+            {/* Selected Family Profiles */}
+            <div className="context-pill context-profiles-pill" title="Active family profiles">
+              <span className="context-sub-text">Profiles:</span>
+              <span className="context-main-text">{selectedPersonas.join(' + ')}</span>
+            </div>
+
+            {/* Cleanest Window */}
+            {cleanWindowData?.hasData && (
+              <div className="context-pill context-window-pill" title="Cleanest 2-hour outdoor window today">
+                <span className="context-sub-text">Cleanest:</span>
+                <span className="context-main-text tabular-nums">{cleanWindowData.displayWindow}</span>
+              </div>
+            )}
+          </div>
+
+          {/* LIVE / SIMULATED Indicator */}
+          <div className={`context-live-indicator ${isSimulation ? 'is-sim' : ''}`}>
+            <span className="live-dot" />
+            <span>{isSimulation ? 'SIMULATED' : 'LIVE'}</span>
+          </div>
         </div>
       </section>
 
-      {/* Single-Viewport Main Stage */}
+      {/* Main Stage */}
       <main className="app-single-viewport-body" id="main-content" role="main">
         {error ? (
-          <div className="tactile-card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--color-terracotta)' }}>
-            <h3 style={{ color: 'var(--color-terracotta)', marginBottom: '0.5rem' }}>Telemetry Feed Disconnected</h3>
+          <div className="tactile-card" style={{ padding: '2rem', textAlign: 'center', borderColor: '#DC2626' }}>
+            <h3 style={{ color: '#DC2626', marginBottom: '0.5rem' }}>Air Quality Feed Disconnected</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{error}</p>
             <button
               onClick={() => loadAirQuality(currentCity, true)}
@@ -229,7 +269,7 @@ export default function App() {
                 fontWeight: 700
               }}
             >
-              Retry Live Telemetry
+              Retry Live Data
             </button>
           </div>
         ) : (
