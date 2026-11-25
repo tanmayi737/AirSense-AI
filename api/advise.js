@@ -150,6 +150,16 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
       } catch (err) {
         lastErr = err;
         const msg = String(err?.message || '');
+
+        // 429 quota exceeded — fail fast, never retry
+        const is429 =
+          err?.status === 429 ||
+          err?.code === 429 ||
+          msg.includes('429') ||
+          msg.toUpperCase().includes('RESOURCE_EXHAUSTED');
+        if (is429) throw err;
+
+        // 503 transient high-demand — retry with backoff
         const isTransient503 =
           err?.status === 503 ||
           err?.code === 503 ||

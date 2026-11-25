@@ -210,6 +210,12 @@ export default function AdvisorView({
         let fallbackReason = 'Deterministic Rule Engine Fallback';
         if (result?.error?.includes('GEMINI_API_KEY')) {
           fallbackReason = 'Rule Engine Fallback (GEMINI_API_KEY not configured on server)';
+        } else if (
+          response.status === 429 ||
+          result?.error?.includes('429') ||
+          result?.error?.toUpperCase?.().includes('RESOURCE_EXHAUSTED')
+        ) {
+          fallbackReason = 'Deterministic Rule Engine Fallback (Live AI Quota Reached)';
         } else if (response.status === 404 || parseError) {
           fallbackReason = `Rule Engine Fallback (API route returned HTTP ${response.status} HTML/404)`;
         } else if (response.status === 503 || result?.fallback) {
@@ -228,10 +234,16 @@ export default function AdvisorView({
     } catch (err) {
       console.error('[/api/advise] Network or fetch error:', err);
       const fallbackData = generateLocalFallback(q);
+      const networkMsg = String(err?.message || '');
+      const is429Network =
+        networkMsg.includes('429') ||
+        networkMsg.toUpperCase().includes('RESOURCE_EXHAUSTED');
       setActiveAdvice({
         ...fallbackData,
         question: q,
-        fallbackReason: `Rule Engine Fallback (Network error: ${err.message || 'connection failed'})`
+        fallbackReason: is429Network
+          ? 'Deterministic Rule Engine Fallback (Live AI Quota Reached)'
+          : `Rule Engine Fallback (Network error: ${err.message || 'connection failed'})`
       });
     } finally {
       setIsLoading(false);
