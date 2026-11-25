@@ -273,7 +273,7 @@ export default function AdvisorView({
         <div className="tactile-card context-rail-card">
           <span className="subcard-kicker">Live Context</span>
           <h3 className="panel-title">Current Air Snapshot</h3>
-          <p className="panel-sub">Live readings shared with Gemini 2.5 Flash</p>
+          <p className="panel-sub">Live readings shared with Gemini 3.8 Flash</p>
 
           <div className="snapshot-data-table">
             <div className="snapshot-row">
@@ -325,7 +325,7 @@ export default function AdvisorView({
             </div>
             <div className="ai-engine-tag">
               <Sparkles size={13} style={{ color: 'var(--color-moss)' }} />
-              <span>Gemini 2.5 Flash</span>
+              <span>Gemini 3.8 Flash</span>
             </div>
           </div>
 
@@ -438,7 +438,7 @@ export default function AdvisorView({
                 ) : (
                   <span className="genai-note">
                     <Sparkles size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                    Synthesized live by <strong>Gemini 2.5 Flash</strong> via structured JSON schema
+                    Synthesized live by <strong>Gemini 3.8 Flash</strong> via structured JSON schema
                   </span>
                 )}
               </div>
