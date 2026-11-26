@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 /**
  * AirSense AI — Vercel Serverless Function Proxy for Gemini API
- * Securely communicates with Gemini 3.8 Flash without exposing keys to frontend.
+ * Securely communicates with Gemini 3.5 Flash-Lite without exposing keys to frontend.
  */
 export default async function handler(req, res) {
   // CORS Headers
@@ -93,17 +93,22 @@ User's Question:
 
 Provide a structured, authoritative decision card in warm, everyday language.`;
 
-    const maxAttempts = 3;
+    const models = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash'];
     let response = null;
     let lastErr = null;
+    let modelUsed = models[0];
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model,
           contents: `${systemPrompt}\n\n${userPrompt}`,
           config: {
             temperature: 0.3,
+            thinkingConfig: {
+              thinkingLevel: 'LOW'
+            },
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
@@ -146,6 +151,7 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
             }
           }
         });
+        modelUsed = model;
         break;
       } catch (err) {
         lastErr = err;
@@ -159,17 +165,19 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
           msg.toUpperCase().includes('RESOURCE_EXHAUSTED');
         if (is429) throw err;
 
-        // 503 transient high-demand — retry with backoff
-        const isTransient503 =
+        // Only fall back across models on 503 or 404 errors
+        const is503Or404 =
           err?.status === 503 ||
           err?.code === 503 ||
+          err?.status === 404 ||
+          err?.code === 404 ||
           msg.includes('503') ||
+          msg.includes('404') ||
           msg.includes('UNAVAILABLE') ||
+          msg.includes('NOT_FOUND') ||
           msg.toLowerCase().includes('high demand');
 
-        if (isTransient503 && attempt < maxAttempts) {
-          const delayMs = 1500 + (attempt - 1) * 1000;
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        if (is503Or404 && i < models.length - 1) {
           continue;
         }
         throw err;
@@ -177,7 +185,7 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
     }
 
     if (!response) {
-      throw lastErr || new Error('Gemini API call failed after retries.');
+      throw lastErr || new Error('Gemini API call failed across fallback models.');
     }
 
     const text = response.text;
@@ -185,6 +193,7 @@ Provide a structured, authoritative decision card in warm, everyday language.`;
 
     return res.status(200).json({
       fallback: false,
+      model: modelUsed,
       data: parsed
     });
   } catch (err) {

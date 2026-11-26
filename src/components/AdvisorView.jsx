@@ -182,10 +182,14 @@ export default function AdvisorView({
       isSimulated: Boolean(isSimulation)
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch('/api/advise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify(payload)
       });
 
@@ -238,14 +242,18 @@ export default function AdvisorView({
       const is429Network =
         networkMsg.includes('429') ||
         networkMsg.toUpperCase().includes('RESOURCE_EXHAUSTED');
+      const isTimeout = err?.name === 'AbortError';
       setActiveAdvice({
         ...fallbackData,
         question: q,
-        fallbackReason: is429Network
-          ? 'Deterministic Rule Engine Fallback (Live AI Quota Reached)'
-          : `Rule Engine Fallback (Network error: ${err.message || 'connection failed'})`
+        fallbackReason: isTimeout
+          ? 'Deterministic Rule Engine Fallback (Live AI Timed Out)'
+          : is429Network
+            ? 'Deterministic Rule Engine Fallback (Live AI Quota Reached)'
+            : `Rule Engine Fallback (Network error: ${err.message || 'connection failed'})`
       });
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
       setQuestion('');
     }
@@ -285,7 +293,7 @@ export default function AdvisorView({
         <div className="tactile-card context-rail-card">
           <span className="subcard-kicker">Live Context</span>
           <h3 className="panel-title">Current Air Snapshot</h3>
-          <p className="panel-sub">Live readings shared with Gemini 3.8 Flash</p>
+          <p className="panel-sub">Live readings shared with Gemini 3.5 Flash-Lite</p>
 
           <div className="snapshot-data-table">
             <div className="snapshot-row">
@@ -337,7 +345,7 @@ export default function AdvisorView({
             </div>
             <div className="ai-engine-tag">
               <Sparkles size={13} style={{ color: 'var(--color-moss)' }} />
-              <span>Gemini 3.8 Flash</span>
+              <span>Gemini 3.5 Flash-Lite</span>
             </div>
           </div>
 
@@ -450,7 +458,7 @@ export default function AdvisorView({
                 ) : (
                   <span className="genai-note">
                     <Sparkles size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                    Synthesized live by <strong>Gemini 3.8 Flash</strong> via structured JSON schema
+                    Synthesized live by <strong>Gemini 3.5 Flash-Lite</strong> via structured JSON schema
                   </span>
                 )}
               </div>

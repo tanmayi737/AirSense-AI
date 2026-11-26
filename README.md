@@ -32,7 +32,7 @@ Most air quality apps stop at reporting an AQI number. AirSense AI bridges the g
   - **Household**: Family profile selector, activity and duration controls, transport/mask exposure selector, Daily Safe Breathing Allowance gauge, and per-profile `GO` / `MODIFY` / `AVOID` decision cards.
   - **Sanctuary**: Smart window ventilation schedule, indoor clean-air checklist, and a sustainable commute offset calculator (CO2, PM2.5, trees equivalent, and fuel savings).
   - **Advisor**: Natural-language Q&A grounded in the active city's live readings.
-- **Serverless AI Proxy (`/api/advise.js`)**: A Vercel serverless function using `@google/genai` (`gemini-3.8-flash` on `v1beta`) with structured JSON output (`responseSchema`). `GEMINI_API_KEY` stays strictly on the server.
+- **Serverless AI Proxy (`/api/advise.js`)**: A Vercel serverless function using `@google/genai` (`gemini-3.5-flash-lite` on `v1beta` with `thinkingLevel: 'LOW'` and automatic fallback to `gemini-3.6-flash` / `gemini-3.8-flash` on `503`/`404` errors) returning structured JSON output (`responseSchema`). `GEMINI_API_KEY` stays strictly on the server.
 - **Automatic Local Fallback**: If `GEMINI_API_KEY` is unconfigured or the network is unavailable, the app automatically falls back to the deterministic local rule engine in `src/utils/decisionEngine.js` so guidance remains available.
 
 ---

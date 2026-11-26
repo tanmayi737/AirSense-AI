@@ -113,10 +113,14 @@ export default function HouseholdView({
     setIsAiLoading(true);
     const prompt = `Given active PM2.5 of ${Number(pm25).toFixed(1)} µg/m³ and Indian CPCB AQI of ${aqiData?.cpcbAqi || 100} in ${cityName}, what is the personalized recommendation for a ${durationMinutes}-minute ${activeActivityName} (${commuteMode}) for ${selectedPersonas.join(' and ')}?`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch('/api/advise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           question: prompt,
           city: cityName,
@@ -164,6 +168,7 @@ export default function HouseholdView({
         isFallback: true
       });
     } finally {
+      clearTimeout(timeoutId);
       setIsAiLoading(false);
     }
   };
@@ -442,7 +447,7 @@ export default function HouseholdView({
 
               <div className="ai-featured-footer">
                 <span className="ai-attribution-tag">
-                  {aiAdvice.isFallback ? 'Deterministic Rule Engine Fallback' : 'Synthesized live by Gemini 3.8 Flash'}
+                  {aiAdvice.isFallback ? 'Deterministic Rule Engine Fallback' : 'Synthesized live by Gemini 3.5 Flash-Lite'}
                 </span>
               </div>
             </div>

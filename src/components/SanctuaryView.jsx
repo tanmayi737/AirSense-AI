@@ -79,10 +79,14 @@ export default function SanctuaryView({
     const profiles = selectedPersonas && selectedPersonas.length > 0 ? selectedPersonas : ['School Child', 'Elderly / Asthma'];
     const prompt = `How should a household with ${profiles.join(' and ')} in ${cityName} with Indian CPCB AQI of ${aqi} protect indoor air quality, schedule window ventilation, and minimize smoke exposure today?`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch('/api/advise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           question: prompt,
           city: cityName,
@@ -114,7 +118,7 @@ export default function SanctuaryView({
             ? `Keep all external windows sealed in ${cityName}. Run indoor True-HEPA purifiers on medium-high continuously.`
             : windowMeta?.isNight
               ? `Open cross-facing windows briefly (15 min) during the ${windowMeta.label} (${cleanWindow?.displayWindow || '10:00 PM – 12:00 AM'}) when late-night traffic drops and surface dust settles.`
-              : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale CO₂.`,
+              : `Open windows only during the midday sun window (${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}) for 20 minutes to flush stale indoor air.`,
           whyItMatters: `Indian CPCB AQI in ${cityName} is ${aqi}. Infiltration of outdoor fine dust elevates indoor particulate levels rapidly.`,
           saferAlternative: `Ventilate during ${cleanWindow?.displayWindow || '11:00 AM – 1:00 PM'}, when ${windowMeta?.isNight ? 'lighter late-night traffic allows brief safe cross-ventilation' : 'warm midday sun helps lift surface smog'}.`,
           indoorAction: `Wipe floors with a damp microfiber mop daily and run the kitchen exhaust on high while cooking.`,
@@ -135,6 +139,7 @@ export default function SanctuaryView({
         isFallback: true
       });
     } finally {
+      clearTimeout(timeoutId);
       setIsAiLoading(false);
     }
   };
